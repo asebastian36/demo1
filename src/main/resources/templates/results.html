@@ -35,9 +35,9 @@
             <tr th:each="bin, iterStat : ${binaries}">
                 <td th:text="${bin}"></td>
                 <td th:text="${decimals[iterStat.index]}"></td>
-                <td th:text="${#numbers.formatDecimal(reals[iterStat.index], 0, 3)}"></td>
-                <td th:text="${#numbers.formatDecimal(adaptatives[iterStat.index], 0, 3)}"></td>
-                <td th:text="${#numbers.formatDecimal(listaOrdenada[iterStat.index], 0, 3)}"></td>
+                <td th:text="${#numbers.formatDecimal(reals[iterStat.index], 0, 4)}"></td>
+                <td th:text="${#numbers.formatDecimal(adaptatives[iterStat.index], 0, 4)}"></td>
+                <td th:text="${#numbers.formatDecimal(listaOrdenada[iterStat.index], 0, 4)}"></td>
             </tr>
             </tbody>
         </table>
