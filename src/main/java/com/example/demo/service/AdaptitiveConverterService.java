@@ -22,7 +22,7 @@ public class AdaptitiveConverterService {
         return bigX.multiply(bigX)                         // x²
                 .add(new BigDecimal("2").multiply(bigX))   // + 2x
                 .add(new BigDecimal("5"))                  // + 5
-                .setScale(4, RoundingMode.HALF_UP)        // 4 decimales
+                .setScale(15, RoundingMode.HALF_UP)        // 15 decimales
                 .doubleValue();
     }
 }
