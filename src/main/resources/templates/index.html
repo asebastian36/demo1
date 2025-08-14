@@ -1,16 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ingresar los binarios</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
 </head>
 <body>
-<h1>Ingresar los binarios</h1>
+<div class="container">
+    <h1>Ingresar los binarios</h1>
 
-<form method="POST" action="/uploadTxt" enctype="multipart/form-data">
-    <label for="txtFile">Seleccionar un archivo .txt donde estan los binarios:</label>
-    <input type="file" id="txtFile" name="file" accept=".txt" />
-    <input type="submit" value="Upload" />
-</form>
+    <form method="POST" action="/uploadTxt" enctype="multipart/form-data">
+        <label for="txtFile">Seleccionar un archivo .txt con los binarios:</label>
+        <input type="file" id="txtFile" name="file" accept=".txt" required>
+
+        <div class="input-group">
+            <label for="xmin">xmin:</label>
+            <input type="number" id="xmin" name="xmin" step="any" required>
+        </div>
+
+        <div class="input-group">
+            <label for="xmax">xmax:</label>
+            <input type="number" id="xmax" name="xmax" step="any" required>
+        </div>
+
+        <div class="input-group">
+            <label for="L">L (precisión):</label>
+            <input type="number" id="L" name="L" min="1" required>
+        </div>
+
+        <input type="submit" value="Procesar Datos">
+    </form>
+</div>
 </body>
 </html>

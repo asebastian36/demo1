@@ -1,71 +1,49 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Resultados</title>
-    <style>
-        .container { margin: 20px; }
-        .results { margin: 20px 0; }
-        table { border-collapse: collapse; margin: 10px 0; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados de Conversión</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
 </head>
 <body>
 <div class="container">
-    <h2>Resultados de Conversión</h2>
+    <h1>Resultados de Conversión</h1>
+
+    <div class="parametros">
+        <h3>Parámetros usados:</h3>
+        <p>
+            <strong>xmin:</strong> <span th:text="${xmin}"></span>,
+            <strong>xmax:</strong> <span th:text="${xmax}"></span>,
+            <strong>L:</strong> <span th:text="${L}"></span>
+        </p>
+    </div>
 
     <div class="results">
-        <h3>Decimales obtenidos:</h3>
-        <table>
-            <tr th:each="num : ${decimals}">
-                <td th:text="${num}"></td>
-            </tr>
-        </table>
-    </div>
-
-    <div th:if="${showForm}">
-        <h3>Parámetros de Normalización</h3>
-        <form action="/normalize" method="post">
-            <!-- Campo oculto con los decimales -->
-            <input type="hidden" name="decimals" th:value="${#strings.listJoin(decimals, ',')}">
-
-            <div>
-                <label>xmin: <input type="number" step="any" name="xmin" required></label>
-            </div>
-            <div>
-                <label>xmax: <input type="number" step="any" name="xmax" required></label>
-            </div>
-            <div>
-                <label>L (precisión): <input type="number" name="L" min="1" required></label>
-            </div>
-            <button type="submit">Normalizar Valores</button>
-        </form>
-    </div>
-
-    <div th:if="${normalized != null}">
-        <h3>Resultados Normalizados</h3>
-        <p>Parámetros usados:
-            xmin = <span th:text="${params.xmin}"></span>,
-            xmax = <span th:text="${params.xmax}"></span>,
-            L = <span th:text="${params.L}"></span>
-        </p>
+        <h2>Proceso de Conversión</h2>
         <table>
             <thead>
             <tr>
+                <th>Binario</th>
                 <th>Decimal</th>
-                <th>Valor Normalizado</th>
+                <th>Valor Real</th>
+                <th>Adaptativo</th>
+                <th>Valores Ordenados</th>
             </tr>
             </thead>
             <tbody>
-            <tr th:each="num, iterStat : ${decimals}">
-                <td th:text="${num}"></td>
-                <td th:text="${normalized[iterStat.index]}"></td>
+            <tr th:each="bin, iterStat : ${binaries}">
+                <td th:text="${bin}"></td>
+                <td th:text="${decimals[iterStat.index]}"></td>
+                <td th:text="${#numbers.formatDecimal(reals[iterStat.index], 0, 3)}"></td>
+                <td th:text="${#numbers.formatDecimal(adaptatives[iterStat.index], 0, 3)}"></td>
+                <td th:text="${#numbers.formatDecimal(listaOrdenada[iterStat.index], 0, 3)}"></td>
             </tr>
             </tbody>
         </table>
     </div>
 
-    <a href="/">Volver</a>
+    <a href="/">Volver al inicio</a>
 </div>
 </body>
 </html>
