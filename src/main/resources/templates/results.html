@@ -19,31 +19,62 @@
         </p>
     </div>
 
-    <div class="results">
-        <h2>Proceso de Conversión</h2>
-        <table>
-            <thead>
-            <tr>
-                <th>Binario</th>
-                <th>Decimal</th>
-                <th>Valor Real</th>
-                <th>Adaptativo</th>
-                <th>Valores Ordenados</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="bin, iterStat : ${binaries}">
-                <td th:text="${bin}"></td>
-                <td th:text="${decimals[iterStat.index]}"></td>
-                <td th:text="${#numbers.formatDecimal(reals[iterStat.index], 0, 15)}"></td>
-                <td th:text="${#numbers.formatDecimal(adaptatives[iterStat.index], 0, 15)}"></td>
-                <td th:text="${#numbers.formatDecimal(listaOrdenada[iterStat.index], 0, 15)}"></td>
-            </tr>
-            </tbody>
-        </table>
+    <div class="tabs">
+        <button class="tab-button active" onclick="openTab(event, 'generation1')">Generación 1</button>
+        <button class="tab-button" onclick="openTab(event, 'generation2')">Generación 2</button>
+        <button class="tab-button" onclick="openTab(event, 'generation3')">Generación 3</button>
+        <!-- Agrega más botones según las generaciones que tengas -->
     </div>
 
-    <a href="/">Volver al inicio</a>
+    <div th:each="table, iter : ${tablas}" class="tab-content" th:id="'generation' + ${iter.index + 1}" th:classappend="${iter.first} ? 'active' : ''">
+        <h2 th:text="'Generación ' + ${iter.index + 1}"></h2>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                <tr>
+                    <th>Binario</th>
+                    <th>Decimal</th>
+                    <th>Valor Real</th>
+                    <th>Adaptativo</th>
+                    <th>Ordenados</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="bin, rowStat : ${table.binaries}">
+                    <td th:text="${bin}"></td>
+                    <td th:text="${table.decimals[rowStat.index]}"></td>
+                    <td th:text="${#numbers.formatDecimal(table.reals[rowStat.index], 0, 3)}"></td>
+                    <td th:text="${#numbers.formatDecimal(table.adaptatives[rowStat.index], 0, 3)}"></td>
+                    <td th:text="${#numbers.formatDecimal(table.orders[rowStat.index], 0, 3)}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <a href="/" class="back-button">Volver al inicio</a>
 </div>
+
+<script>
+    function openTab(evt, tabName) {
+        const tabContents = document.getElementsByClassName("tab-content");
+        const tabButtons = document.getElementsByClassName("tab-button");
+
+        // Oculta todos los contenidos
+        for (let i = 0; i < tabContents.length; i++) {
+            tabContents[i].classList.remove("active");
+        }
+
+        // Desactiva todos los botones
+        for (let i = 0; i < tabButtons.length; i++) {
+            tabButtons[i].classList.remove("active");
+        }
+
+        // Muestra el contenido seleccionado y activa el botón
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+</script>
 </body>
 </html>
