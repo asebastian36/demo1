@@ -84,13 +84,12 @@ public class CrossConverterService {
         return new String[]{hijo1, hijo2};
     }
 
+    // Y entonces el método sería:
     private double calcularAdaptativo(String binario, double xmin, double xmax, int L) {
         try {
             int decimal = binaryConverterService.convertBinaryToInt(binario);
-            List<Integer> decimales = Collections.singletonList(decimal);
-            List<Double> reales = realConverterService.toReal(decimales, xmin, xmax, L);
-            List<Double> adaptativos = adaptitiveConverterService.toAdaptive(reales);
-            return adaptativos.getFirst();
+            double real = realConverterService.toRealSingle(decimal, xmin, xmax, L);
+            return adaptitiveConverterService.toAdaptiveSingle(real);
         } catch (Exception e) {
             System.out.println("Error calculando adaptativo para: " + binario);
             return Double.NEGATIVE_INFINITY;
