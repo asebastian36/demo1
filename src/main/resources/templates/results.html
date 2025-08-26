@@ -17,7 +17,13 @@
             <strong>xmax:</strong> <span th:text="${xmax}"></span>,
             <strong>L:</strong> <span th:text="${L}"></span>
         </p>
-        <p><strong>Nota:</strong> Todos los binarios se normalizan a <span th:text="${L}"></span> bits</p>
+    </div>
+
+    <!-- Gráfica -->
+    <div class="chart-container" style="margin: 30px 0;">
+        <h3>Evolución de Valores Adaptativos</h3>
+        <img th:src="${chartImage}" alt="Gráfica de valores adaptativos"
+             style="width: 100%; max-width: 800px; height: auto; border: 1px solid #ddd;">
     </div>
 
     <div class="tabs">

@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.entities.Individual;
 import com.example.demo.service.BinaryConverterService;
+import com.example.demo.service.ChartService;
 import com.example.demo.service.LoopConverterService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 public class BinaryFileController {
@@ -19,6 +21,9 @@ public class BinaryFileController {
 
     @Autowired
     private BinaryConverterService binaryConverterService;
+
+    @Autowired
+    private ChartService chartService;
 
     @GetMapping("/")
     public String showUploadForm() {
@@ -58,20 +63,29 @@ public class BinaryFileController {
                 throw new IllegalArgumentException("El archivo no contiene números binarios");
             }
 
-            System.out.println("binaryNumbers = " + binaryNumbers);
-
             List<List<Individual>> generations = loopConverterService.generateGenerations(
                     binaryNumbers, xmin, xmax, L
             );
 
-            // Agregar al modelo
+            // Preparar datos para la gráfica
+            List<List<Double>> adaptativeValuesByGeneration = new ArrayList<>();
+            for (List<Individual> generation : generations) {
+                List<Double> adaptatives = generation.stream()
+                        .map(Individual::getAdaptative)
+                        .collect(Collectors.toList());
+                adaptativeValuesByGeneration.add(adaptatives);
+            }
 
-            System.out.println("generations = " + generations);
+            // Generar gráfica
+            String chartImage = chartService.generateAdaptativeChart(adaptativeValuesByGeneration);
+
+            // Agregar al modelo
             model.addAttribute("generations", generations);
             model.addAttribute("xmin", xmin);
             model.addAttribute("xmax", xmax);
             model.addAttribute("L", L);
             model.addAttribute("binaryService", binaryConverterService);
+            model.addAttribute("chartImage", chartImage);
 
             return "results";
 
