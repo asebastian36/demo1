@@ -1,10 +1,11 @@
 package com.example.demo.service;
 
-import com.example.demo.domain.Table;
+import com.example.demo.entities.Individual;
 import com.example.demo.utils.IntPair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class LoopConverterService {
@@ -21,138 +22,146 @@ public class LoopConverterService {
     @Autowired
     private AdaptitiveConverterService adaptitiveService;
 
+    public List<List<Individual>> generateGenerations(List<String> binaryNumbers, double xmin, double xmax, int L) {
+        List<List<Individual>> generations = new ArrayList<>();
 
-    public List<Table> generateGenerations(List<String> binaryNumbers, double xmin, double xmax, int L) {
-        List<Table> tables = new ArrayList<>();
+        // Normalizar todos los binarios a longitud L
+        List<String> currentBinaries = binaryService.normalizeAllBinaries(binaryNumbers, L);
 
+        System.out.println("=== INICIO DEL ALGORITMO GENÉTICO ===");
+        System.out.println("Binarios iniciales normalizados: " + currentBinaries);
 
-        for (int i = 0; i < 3; i++) {
-            //  generando la primera generacion
-            if ( i == 0 ) {
-                updateBinaries(binaryNumbers, xmin, xmax, L, tables);
-            }
+        // GENERACIÓN 1
+        System.out.println("\n=== GENERACIÓN 1 ===");
+        List<Individual> generation1 = createAndOrderGeneration(currentBinaries, xmin, xmax, L, 0);
+        generations.add(generation1);
 
-            //  cruces para 2da
-            else if ( i == 1 ) {
-                /*
-            2da generacion:
-            4 y 14,
-            3 y 7
-            8 y 9
-            15 y 1
-            13 y 9
-            7 y 8
-            9 y 10
-            5 y 9
-            15 y 7
-            9 y 1
-            3 y 4
-         */
+        // Obtener binarios ordenados por adaptativo (descendente)
+        List<String> orderedBinariesGen1 = generation1.stream()
+                .map(Individual::getBinary)
+                .collect(Collectors.toList());
+        System.out.println("Binarios Gen 1 ORDENADOS: " + orderedBinariesGen1);
 
-                List<IntPair> listaPares = getPairs();
+        // GENERACIÓN 2
+        System.out.println("\n=== GENERACIÓN 2 ===");
+        List<IntPair> crucesGen2 = getCrucePairs(0);
+        System.out.println("Cruces originales Gen 1→2: " + crucesGen2);
 
-                //  se actualiza la lista
-                binaryNumbers = crossConverterService.cruceGeneracion(binaryNumbers, listaPares);
-                List<Integer> decimalNumbers = binaryService.convertBinaryListToIntegers(binaryNumbers);
-                Table segunda = operations(decimalNumbers,  xmin, xmax, L);
+        // Mapear cruces al orden actual (índices ordenados por adaptativo)
+        List<IntPair> mappedCrucesGen2 = mapCrucePairs(crucesGen2, orderedBinariesGen1, currentBinaries);
+        System.out.println("Cruces mapeados Gen 1→2: " + mappedCrucesGen2);
 
-                List<Double> listaOrdenada = segunda.getAdaptatives()
-                        .stream()
-                        .sorted(Comparator.reverseOrder())
-                        .toList();
+        List<String> binariosGen2 = crossConverterService.cruceGeneracion(
+                new ArrayList<>(orderedBinariesGen1), mappedCrucesGen2, xmin, xmax, L
+        );
 
-                segunda.setOrders(listaOrdenada);
-                segunda.setBinaries(binaryNumbers);
+        List<Individual> generation2 = createAndOrderGeneration(binariosGen2, xmin, xmax, L, 1);
+        generations.add(generation2);
 
-                tables.add(segunda);
+        // Obtener binarios ordenados de Gen 2
+        List<String> orderedBinariesGen2 = generation2.stream()
+                .map(Individual::getBinary)
+                .collect(Collectors.toList());
+        System.out.println("Binarios Gen 2 ORDENADOS: " + orderedBinariesGen2);
 
-            } else  {   //  cruces para 3ra generacion
+        // GENERACIÓN 3
+        System.out.println("\n=== GENERACIÓN 3 ===");
+        List<IntPair> crucesGen3 = getCrucePairs(1);
+        System.out.println("Cruces originales Gen 2→3: " + crucesGen3);
 
-                /*
-                3ra generacion:
-                15 y 3
-                8 y 7
-                2 y 9
-                6 y 5
-                14 y 7
-                3 y 9
-                13 y 4
-                9 y 2
-                15 y 9
-                7 y 3
-                8 y 12
-                 */
-                List<IntPair> listaPares = getIntPairs();
+        // Mapear cruces al orden actual de Gen 2
+        List<IntPair> mappedCrucesGen3 = mapCrucePairs(crucesGen3, orderedBinariesGen2, binariosGen2);
+        System.out.println("Cruces mapeados Gen 2→3: " + mappedCrucesGen3);
 
-                //  se actualiza la lista
-                binaryNumbers = crossConverterService.cruceGeneracion(binaryNumbers, listaPares);
-                updateBinaries(binaryNumbers, xmin, xmax, L, tables);
-            }
+        List<String> binariosGen3 = crossConverterService.cruceGeneracion(
+                new ArrayList<>(orderedBinariesGen2), mappedCrucesGen3, xmin, xmax, L
+        );
 
+        List<Individual> generation3 = createAndOrderGeneration(binariosGen3, xmin, xmax, L, 2);
+        generations.add(generation3);
+
+        System.out.println("=== FIN DEL ALGORITMO ===");
+        return generations;
+    }
+
+    private List<Individual> createAndOrderGeneration(List<String> binaryNumbers, double xmin, double xmax, int L, int generationNumber) {
+        System.out.println("Creando generación " + (generationNumber + 1) + " con binarios: " + binaryNumbers);
+
+        List<Individual> individuals = new ArrayList<>();
+        List<Integer> decimalNumbers = binaryService.convertBinaryListToIntegers(binaryNumbers);
+        List<Double> realNumbers = realService.toReal(decimalNumbers, xmin, xmax, L);
+        List<Double> adaptativeNumbers = adaptitiveService.toAdaptive(realNumbers);
+
+        for (int i = 0; i < binaryNumbers.size(); i++) {
+            Individual individual = new Individual(
+                    binaryNumbers.get(i),
+                    realNumbers.get(i),
+                    adaptativeNumbers.get(i),
+                    generationNumber
+            );
+            individuals.add(individual);
         }
 
-        return tables;
+        // Ordenar por valor adaptativo descendente
+        individuals.sort((a, b) -> Double.compare(b.getAdaptative(), a.getAdaptative()));
+
+        System.out.println("Generación " + (generationNumber + 1) + " ordenada por adaptativo descendente");
+        return individuals;
     }
 
-    private void updateBinaries(List<String> binaryNumbers, double xmin, double xmax, int L, List<Table> tables) {
-        List<Integer> decimalNumbers = binaryService.convertBinaryListToIntegers(binaryNumbers);
-        Table primera = operations(decimalNumbers,  xmin, xmax, L);
-        primera.setBinaries(binaryNumbers);
+    /**
+     * Mapea los índices de cruce del orden original al orden actual (ordenado por adaptativo)
+     */
+    private List<IntPair> mapCrucePairs(List<IntPair> originalCruces, List<String> orderedBinaries, List<String> originalBinaries) {
+        List<IntPair> mappedCruces = new ArrayList<>();
 
-        List<Double> listaOrdenada = primera.getAdaptatives()
-                .stream()
-                .sorted(Comparator.reverseOrder())
-                .toList();
+        // Crear mapa de binario -> posición en orden original
+        Map<String, Integer> originalPositionMap = new HashMap<>();
+        for (int i = 0; i < originalBinaries.size(); i++) {
+            originalPositionMap.put(originalBinaries.get(i), i + 1); // +1 porque los índices empiezan en 1
+        }
 
-        primera.setOrders(listaOrdenada);
-        primera.setBinaries(binaryNumbers);
+        // Crear mapa de binario -> posición en orden actual (ordenado)
+        Map<String, Integer> orderedPositionMap = new HashMap<>();
+        for (int i = 0; i < orderedBinaries.size(); i++) {
+            orderedPositionMap.put(orderedBinaries.get(i), i + 1);
+        }
 
-        tables.add(primera);
+        for (IntPair par : originalCruces) {
+            int originalIndex1 = par.first();
+            int originalIndex2 = par.second();
+
+            // Obtener el binario en la posición original
+            String binary1 = originalBinaries.get(originalIndex1 - 1);
+            String binary2 = originalBinaries.get(originalIndex2 - 1);
+
+            // Encontrar la nueva posición en el orden actual
+            Integer newIndex1 = orderedPositionMap.get(binary1);
+            Integer newIndex2 = orderedPositionMap.get(binary2);
+
+            if (newIndex1 != null && newIndex2 != null) {
+                mappedCruces.add(new IntPair(newIndex1, newIndex2));
+            }
+        }
+
+        return mappedCruces;
     }
 
-    private static List<IntPair> getPairs() {
-        List<IntPair> listaPares = new ArrayList<>();
-        listaPares.add(new IntPair(4, 14));
-        listaPares.add(new IntPair(3, 7));
-        listaPares.add(new IntPair(8, 9));
-        listaPares.add(new IntPair(15, 1));
-        listaPares.add(new IntPair(13, 9));
-        listaPares.add(new IntPair(7, 8));
-        listaPares.add(new IntPair(9, 10));
-        listaPares.add(new IntPair(5, 9));
-        listaPares.add(new IntPair(15, 7));
-        listaPares.add(new IntPair(9, 1));
-        listaPares.add(new IntPair(3, 4));
-        return listaPares;
-    }
-
-    private static List<IntPair> getIntPairs() {
-        List<IntPair> listaPares = new ArrayList<>();
-        listaPares.add(new IntPair(15, 3));
-        listaPares.add(new IntPair(8, 7));
-        listaPares.add(new IntPair(2, 9));
-        listaPares.add(new IntPair(6, 5));
-        listaPares.add(new IntPair(14, 7));
-        listaPares.add(new IntPair(3, 9));
-        listaPares.add(new IntPair(13, 4));
-        listaPares.add(new IntPair(9, 2));
-        listaPares.add(new IntPair(15, 9));
-        listaPares.add(new IntPair(7, 3));
-        listaPares.add(new IntPair(8, 12));
-        return listaPares;
-    }
-
-    private Table operations(List<Integer> decimalNumbers, double xmin, double xmax,  int L) {
-        Table generationProcess = new Table();
-
-        generationProcess.setDecimals(decimalNumbers);
-
-        List<Double> reals = realService.toReal(generationProcess.getDecimals(),  xmin, xmax, L);
-        generationProcess.setReals(reals);
-
-        List<Double> adaptatives = adaptitiveService.toAdaptive(generationProcess.getReals());
-        generationProcess.setAdaptatives(adaptatives);
-
-        return generationProcess;
+    private List<IntPair> getCrucePairs(int listaIndex) {
+        if (listaIndex == 0) {
+            return Arrays.asList(
+                    new IntPair(4, 14), new IntPair(3, 7), new IntPair(8, 9),
+                    new IntPair(15, 1), new IntPair(13, 9), new IntPair(7, 8),
+                    new IntPair(9, 10), new IntPair(5, 9), new IntPair(15, 7),
+                    new IntPair(9, 1), new IntPair(3, 4)
+            );
+        } else {
+            return Arrays.asList(
+                    new IntPair(15, 3), new IntPair(8, 7), new IntPair(2, 9),
+                    new IntPair(6, 5), new IntPair(14, 7), new IntPair(3, 9),
+                    new IntPair(13, 4), new IntPair(9, 2), new IntPair(15, 9),
+                    new IntPair(7, 3), new IntPair(8, 12)
+            );
+        }
     }
 }

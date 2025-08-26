@@ -21,21 +21,19 @@ public class RealConverterService {
             throw new IllegalArgumentException("L debe ser un entero positivo");
         }
 
-        // Convertir parámetros a BigDecimal
         BigDecimal bigXmin = BigDecimal.valueOf(xmin);
         BigDecimal bigXmax = BigDecimal.valueOf(xmax);
         BigDecimal bigRange = bigXmax.subtract(bigXmin);
 
         // Calcular denominador: (2^L - 1)
         BigDecimal denominator = BigDecimal.valueOf(2)
-                .pow(L)
-                .subtract(BigDecimal.ONE);
+                .pow(L)  // 2^11 = 2048
+                .subtract(BigDecimal.ONE);  // 2047
 
         return decimals.stream()
                 .map(v -> calculateRealValue(v, bigXmin, bigRange, denominator))
                 .collect(Collectors.toList());
     }
-
     private Double calculateRealValue(Integer v, BigDecimal xmin,
                                       BigDecimal range, BigDecimal denominator) {
         BigDecimal bigV = new BigDecimal(v);
