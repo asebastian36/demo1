@@ -1,9 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.entities.Individual;
-import com.example.demo.service.BinaryConverterService;
-import com.example.demo.service.ChartService;
-import com.example.demo.service.LoopConverterService;
+import com.example.demo.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -48,8 +46,7 @@ public class BinaryFileController {
 
             // Leer el archivo línea por línea
             List<String> binaryNumbers = new ArrayList<>();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(file.getInputStream()))) {
+            try ( BufferedReader reader = new BufferedReader( new InputStreamReader( file.getInputStream() ) ) ) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     if (!line.trim().isEmpty()) {

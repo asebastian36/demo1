@@ -39,7 +39,7 @@ public class CrossConverterService {
                 binario2Original = binaryConverterService.normalizeBinary(binario2Original, L);
 
                 // Realizar el cruce en el punto 4 (después del 4to bit)
-                String[] hijos = realizarCruce(binario1Original, binario2Original, 4);
+                String[] hijos = realizarCruce(binario1Original, binario2Original);
                 String hijo1 = hijos[0];
                 String hijo2 = hijos[1];
 
@@ -73,13 +73,13 @@ public class CrossConverterService {
         return nuevaGeneracion;
     }
 
-    private String[] realizarCruce(String binario1, String binario2, int puntoCruce) {
+    private String[] realizarCruce(String binario1, String binario2) {
         if (binario1.length() != binario2.length()) {
             throw new IllegalArgumentException("Binarios de diferente longitud: " + binario1 + " vs " + binario2);
         }
 
-        String hijo1 = binario2.substring(0, puntoCruce) + binario1.substring(puntoCruce);
-        String hijo2 = binario1.substring(0, puntoCruce) + binario2.substring(puntoCruce);
+        String hijo1 = binario2.substring(0, 4) + binario1.substring(4);
+        String hijo2 = binario1.substring(0, 4) + binario2.substring(4);
 
         return new String[]{hijo1, hijo2};
     }

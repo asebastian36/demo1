@@ -48,7 +48,7 @@ public class LoopConverterService {
         System.out.println("Cruces originales Gen 1→2: " + crucesGen2);
 
         // Mapear cruces al orden actual (índices ordenados por adaptativo)
-        List<IntPair> mappedCrucesGen2 = mapCrucePairs(crucesGen2, orderedBinariesGen1, currentBinaries);
+        List<IntPair> mappedCrucesGen2 = mapCrucePairs(crucesGen2, orderedBinariesGen1);
         System.out.println("Cruces mapeados Gen 1→2: " + mappedCrucesGen2);
 
         List<String> binariosGen2 = crossConverterService.cruceGeneracion(
@@ -70,8 +70,7 @@ public class LoopConverterService {
         System.out.println("Cruces originales Gen 2→3: " + crucesGen3);
 
         // Mapear cruces al orden actual de Gen 2
-        List<IntPair> mappedCrucesGen3 = mapCrucePairs(crucesGen3, orderedBinariesGen2, binariosGen2);
-        System.out.println("Cruces mapeados Gen 2→3: " + mappedCrucesGen3);
+        List<IntPair> mappedCrucesGen3 = mapCrucePairs(crucesGen3, orderedBinariesGen2);        System.out.println("Cruces mapeados Gen 2→3: " + mappedCrucesGen3);
 
         List<String> binariosGen3 = crossConverterService.cruceGeneracion(
                 new ArrayList<>(orderedBinariesGen2), mappedCrucesGen3, xmin, xmax, L
@@ -103,7 +102,8 @@ public class LoopConverterService {
         }
 
         // Ordenar por valor adaptativo descendente
-        individuals.sort((a, b) -> Double.compare(b.getAdaptative(), a.getAdaptative()));
+        // Más explícito y legible
+        individuals.sort(Comparator.comparingDouble(Individual::getAdaptative).reversed());
 
         System.out.println("Generación " + (generationNumber + 1) + " ordenada por adaptativo descendente");
         return individuals;
@@ -112,41 +112,22 @@ public class LoopConverterService {
     /**
      * Mapea los índices de cruce del orden original al orden actual (ordenado por adaptativo)
      */
-    private List<IntPair> mapCrucePairs(List<IntPair> originalCruces, List<String> orderedBinaries, List<String> originalBinaries) {
+    private List<IntPair> mapCrucePairs(List<IntPair> originalCruces, List<String> orderedBinaries) {
         List<IntPair> mappedCruces = new ArrayList<>();
-
-        // Crear mapa de binario -> posición en orden original
-        Map<String, Integer> originalPositionMap = new HashMap<>();
-        for (int i = 0; i < originalBinaries.size(); i++) {
-            originalPositionMap.put(originalBinaries.get(i), i + 1); // +1 porque los índices empiezan en 1
-        }
-
-        // Crear mapa de binario -> posición en orden actual (ordenado)
-        Map<String, Integer> orderedPositionMap = new HashMap<>();
-        for (int i = 0; i < orderedBinaries.size(); i++) {
-            orderedPositionMap.put(orderedBinaries.get(i), i + 1);
-        }
 
         for (IntPair par : originalCruces) {
             int originalIndex1 = par.first();
             int originalIndex2 = par.second();
 
-            // Obtener el binario en la posición original
-            String binary1 = originalBinaries.get(originalIndex1 - 1);
-            String binary2 = originalBinaries.get(originalIndex2 - 1);
-
-            // Encontrar la nueva posición en el orden actual
-            Integer newIndex1 = orderedPositionMap.get(binary1);
-            Integer newIndex2 = orderedPositionMap.get(binary2);
-
-            if (newIndex1 != null && newIndex2 != null) {
-                mappedCruces.add(new IntPair(newIndex1, newIndex2));
+            // Los índices ya están en el orden correcto (ordenado por adaptativo)
+            // Solo necesitamos asegurar que estén dentro del rango
+            if (originalIndex1 <= orderedBinaries.size() && originalIndex2 <= orderedBinaries.size()) {
+                mappedCruces.add(new IntPair(originalIndex1, originalIndex2));
             }
         }
 
         return mappedCruces;
     }
-
     private List<IntPair> getCrucePairs(int listaIndex) {
         if (listaIndex == 0) {
             return Arrays.asList(
