@@ -15,10 +15,7 @@ public class RealConverterService {
             throw new IllegalArgumentException("L debe ser un entero positivo");
         }
 
-        // Calcular el máximo valor decimal posible
         double maxDecimalValue = Math.pow(2, L) - 1;
-
-        // Calcular el factor de escala
         double range = xmax - xmin;
         double scaleFactor = range / maxDecimalValue;
 
@@ -27,7 +24,6 @@ public class RealConverterService {
                 .collect(Collectors.toList());
     }
 
-    // En RealConverterService:
     public Double toRealSingle(int decimal, double xmin, double xmax, int L) {
         double maxDecimalValue = Math.pow(2, L) - 1;
         double scaleFactor = (xmax - xmin) / maxDecimalValue;

@@ -1,27 +1,35 @@
 package com.example.demo.controller;
 
 import com.example.demo.entities.Individual;
-import com.example.demo.service.*;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.demo.service.BinaryConverterService;
+import com.example.demo.service.ChartService;
+import com.example.demo.service.GeneticAlgorithmService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Controller
 public class BinaryFileController {
 
-    @Autowired
-    private LoopConverterService loopConverterService;
+    private final GeneticAlgorithmService geneticAlgorithmService;
+    private final BinaryConverterService binaryConverterService;
+    private final ChartService chartService;
 
-    @Autowired
-    private BinaryConverterService binaryConverterService;
-
-    @Autowired
-    private ChartService chartService;
+    public BinaryFileController(GeneticAlgorithmService geneticAlgorithmService,
+                                BinaryConverterService binaryConverterService,
+                                ChartService chartService) {
+        this.geneticAlgorithmService = geneticAlgorithmService;
+        this.binaryConverterService = binaryConverterService;
+        this.chartService = chartService;
+    }
 
     @GetMapping("/")
     public String showUploadForm() {
@@ -35,18 +43,15 @@ public class BinaryFileController {
                                    @RequestParam int L,
                                    Model model) {
         try {
-            // Validación básica del archivo
             if (file.isEmpty()) {
                 throw new IllegalArgumentException("El archivo está vacío");
             }
-
             if (!Objects.requireNonNull(file.getOriginalFilename()).toLowerCase().endsWith(".txt")) {
                 throw new IllegalArgumentException("Solo se permiten archivos .txt");
             }
 
-            // Leer el archivo línea por línea
             List<String> binaryNumbers = new ArrayList<>();
-            try ( BufferedReader reader = new BufferedReader( new InputStreamReader( file.getInputStream() ) ) ) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     if (!line.trim().isEmpty()) {
@@ -55,28 +60,22 @@ public class BinaryFileController {
                 }
             }
 
-            // Validar que hay números binarios
             if (binaryNumbers.isEmpty()) {
                 throw new IllegalArgumentException("El archivo no contiene números binarios");
             }
 
-            List<List<Individual>> generations = loopConverterService.generateGenerations(
-                    binaryNumbers, xmin, xmax, L
+            List<List<Individual>> generations = geneticAlgorithmService.runEvolution(
+                    binaryNumbers, xmin, xmax, L, 3  // 3 generaciones
             );
 
-            // Preparar datos para la gráfica
-            List<List<Double>> adaptativeValuesByGeneration = new ArrayList<>();
-            for (List<Individual> generation : generations) {
-                List<Double> adaptatives = generation.stream()
-                        .map(Individual::getAdaptative)
-                        .collect(Collectors.toList());
-                adaptativeValuesByGeneration.add(adaptatives);
-            }
+            List<List<Double>> fitnessByGeneration = generations.stream()
+                    .map(gen -> gen.stream()
+                            .map(Individual::getAdaptative)
+                            .collect(Collectors.toList()))
+                    .collect(Collectors.toList());
 
-            // Generar gráfica
-            String chartImage = chartService.generateAdaptativeChart(adaptativeValuesByGeneration);
+            String chartImage = chartService.generateAdaptativeChart(fitnessByGeneration);
 
-            // Agregar al modelo
             model.addAttribute("generations", generations);
             model.addAttribute("xmin", xmin);
             model.addAttribute("xmax", xmax);
