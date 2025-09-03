@@ -2,15 +2,11 @@ package com.example.demo.service;
 
 import org.jfree.chart.*;
 import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.chart.plot.*;
+import org.jfree.data.xy.*;
 import org.springframework.stereotype.Service;
-
 import java.awt.*;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.Base64;
 import java.util.List;
 

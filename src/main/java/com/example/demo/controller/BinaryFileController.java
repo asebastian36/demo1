@@ -1,19 +1,13 @@
 package com.example.demo.controller;
 
 import com.example.demo.entities.Individual;
-import com.example.demo.service.BinaryConverterService;
-import com.example.demo.service.ChartService;
-import com.example.demo.service.GeneticAlgorithmService;
+import com.example.demo.service.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.io.*;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Controller
