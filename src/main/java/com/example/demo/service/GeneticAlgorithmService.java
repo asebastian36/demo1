@@ -69,29 +69,26 @@ public class GeneticAlgorithmService {
         for (int gen = 0; gen < numGenerations; gen++) {
             log.info("=== GENERACIÓN {} ===", gen + 1);
 
-            // 1. Crear y ordenar por adaptativo (entrada)
+            // Crear y ordenar por adaptativo descendente
             List<Individual> generation = createOrderedGeneration(currentBinaries, xmin, xmax, L, gen);
-            log.debug("Generación {} creada y ordenada: {} individuos", gen + 1, generation.size());
-
-            // 2. Guardar en BD
             generations.add(generation);
             individualService.saveAll(generation);
 
+            log.debug("Generación {} creada y guardada: {} individuos", gen + 1, generation.size());
+
             if (gen < numGenerations - 1) {
-                // 3. Aplicar cruces (reemplazo posicional)
+                // Obtener pares de cruce según generación
                 List<IndexPair> crossoverPairs = crossoverPlans.getOrDefault(gen, Collections.emptyList());
-                log.debug("Aplicando {} cruces", crossoverPairs.size());
+                log.debug("Aplicando {} cruces en generación {}", crossoverPairs.size(), gen + 1);
+
+                // Aplicar cruce directo (reemplazo posicional)
                 crossoverService.applyCrossover(generation, crossoverPairs, xmin, xmax, L, crossoverType);
 
-                // 4. Aplicar mutación
-                log.debug("Aplicando mutación (2%)");
+                // Aplicar mutación aleatoria in-situ
                 mutationService.applyToGeneration(generation, 0.02, L);
+                log.debug("Mutación aplicada a generación {}", gen + 1);
 
-                // 5. ✅ ORDENAR DE NUEVO POR ADAPTATIVO DESCENDENTE
-                generation.sort(Comparator.comparingDouble(Individual::getAdaptative).reversed());
-                log.info("Generación {} reordenada por adaptativo tras cruce y mutación", gen + 1);
-
-                // 6. Preparar binarios para próxima generación
+                // Actualizar binarios para próxima generación
                 currentBinaries = generation.stream()
                         .map(Individual::getBinary)
                         .collect(Collectors.toList());
