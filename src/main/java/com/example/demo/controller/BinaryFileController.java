@@ -27,7 +27,7 @@ public class BinaryFileController {
 
     @GetMapping("/")
     public String showUploadForm() {
-        return "upload";
+        return "index";
     }
 
     @PostMapping("/uploadTxt")

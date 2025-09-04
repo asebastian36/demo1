@@ -56,4 +56,22 @@ public class MutationService {
         log.info("Mutación finalizada: {} de {} individuos mutados", mutationsApplied, individuals.size());
         return result;
     }
+
+    public void applyToGeneration(List<Individual> generation, double mutationRate, int L) {
+        log.info("Aplicando mutación a {} individuos (tasa={}%)", generation.size(), mutationRate * 100);
+        int mutationsApplied = 0;
+
+        for (int i = 0; i < generation.size(); i++) {
+            Individual original = generation.get(i);
+            Individual mutated = mutate(original, mutationRate, L);
+
+            if (!original.getBinary().equals(mutated.getBinary())) {
+                generation.set(i, mutated);
+                mutationsApplied++;
+                log.debug("Mutación aplicada en posición {}: {} → {}", i + 1, original.getBinary(), mutated.getBinary());
+            }
+        }
+
+        log.info("Mutación finalizada: {} de {} individuos modificados", mutationsApplied, generation.size());
+    }
 }
