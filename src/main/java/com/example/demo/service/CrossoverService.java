@@ -1,63 +1,63 @@
 package com.example.demo.service;
 
 import com.example.demo.utils.IndexPair;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class CrossoverService {
 
     private final Map<String, CrossoverStrategy> strategies = new HashMap<>();
+    private final BinaryConverterService binaryConverterService;
+    private final RealConverterService realConverterService;
+    private final AdaptiveFunctionService adaptiveFunctionService;
 
-    @Autowired
-    private BinaryConverterService binaryConverterService;
-
-    @Autowired
-    private RealConverterService realConverterService;
-
-    @Autowired
-    private AdaptiveFunctionService adaptiveFunctionService;
-
-
-    // Inyectamos ambas estrategias
     public CrossoverService(SinglePointCrossoverStrategy singleStrategy,
-                            DoublePointCrossoverStrategy doubleStrategy) {
+                            DoublePointCrossoverStrategy doubleStrategy,
+                            BinaryConverterService binaryConverterService,
+                            RealConverterService realConverterService,
+                            AdaptiveFunctionService adaptiveFunctionService) {
+        this.binaryConverterService = binaryConverterService;
+        this.realConverterService = realConverterService;
+        this.adaptiveFunctionService = adaptiveFunctionService;
         strategies.put("single", singleStrategy);
         strategies.put("double", doubleStrategy);
     }
 
-    public List<String> performCrossover(List<String> binaries,
-                                         List<IndexPair> crossovers,
-                                         double xmin, double xmax, int L,
-                                         String crossoverType) { // "single" o "double"
+    /**
+     * Realiza el cruce en una lista de padres según pares de índices y tipo de cruce.
+     */
+    public List<String> performCrossover(List<String> parentBinaries,
+                                         List<IndexPair> crossoverPairs,
+                                         double xmin,
+                                         double xmax,
+                                         int L,
+                                         String crossoverType) {
 
         CrossoverStrategy strategy = strategies.getOrDefault(crossoverType, strategies.get("single"));
-        List<String> nextGeneration = new ArrayList<>(binaries);
+        List<String> children = new ArrayList<>();
 
-        for (IndexPair pair : crossovers) {
+        for (IndexPair pair : crossoverPairs) {
             int i1 = pair.first() - 1;
             int i2 = pair.second() - 1;
 
-            if (i1 < 0 || i2 < 0 || i1 >= binaries.size() || i2 >= binaries.size()) continue;
+            if (i1 < 0 || i2 < 0 || i1 >= parentBinaries.size() || i2 >= parentBinaries.size()) {
+                continue;
+            }
 
-            String parent1 = binaryConverterService.normalizeBinary(binaries.get(i1), L);
-            String parent2 = binaryConverterService.normalizeBinary(binaries.get(i2), L);
+            String p1 = binaryConverterService.normalizeBinary(parentBinaries.get(i1), L);
+            String p2 = binaryConverterService.normalizeBinary(parentBinaries.get(i2), L);
 
-            String[] children = strategy.crossover(parent1, parent2);
-            double fit1 = calculateFitness(binaries.get(i1), xmin, xmax, L);
-            double fit2 = calculateFitness(binaries.get(i2), xmin, xmax, L);
-            double childFit1 = calculateFitness(children[0], xmin, xmax, L);
-            double childFit2 = calculateFitness(children[1], xmin, xmax, L);
-
-            if (childFit1 > fit1) nextGeneration.set(i1, children[0]);
-            if (childFit2 > fit2) nextGeneration.set(i2, children[1]);
+            String[] result = strategy.crossover(p1, p2);
+            children.add(result[0]);
+            children.add(result[1]);
         }
 
-        return nextGeneration;
+        return children;
     }
 
+    // Método auxiliar para calcular fitness (usado en cruce si fuera necesario)
     private double calculateFitness(String binary, double xmin, double xmax, int L) {
         try {
             int decimal = binaryConverterService.convertBinaryToInt(binary);

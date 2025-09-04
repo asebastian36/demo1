@@ -1,10 +1,10 @@
 package com.example.demo.service;
 
 import com.example.demo.entities.Individual;
-import com.example.demo.repository.IndividualRepository;
 import com.example.demo.utils.IndexPair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -15,33 +15,27 @@ public class GeneticAlgorithmService {
     private final BinaryConverterService binaryConverterService;
     private final RealConverterService realConverterService;
     private final AdaptiveFunctionService adaptiveFunctionService;
-    private final IndividualRepository individualRepository;
+    private final IndividualService individualService;
+    private final RouletteSelectionService rouletteSelectionService;
+    private final MutationService mutationService;
 
-    private final Map<Integer, List<IndexPair>> crossoverPlans = Map.of(
-            0, Arrays.asList(
-                    new IndexPair(4, 14), new IndexPair(3, 7), new IndexPair(8, 9),
-                    new IndexPair(15, 1), new IndexPair(13, 9), new IndexPair(7, 8),
-                    new IndexPair(9, 10), new IndexPair(5, 9), new IndexPair(15, 7),
-                    new IndexPair(9, 1), new IndexPair(3, 4)
-            ),
-            1, Arrays.asList(
-                    new IndexPair(15, 3), new IndexPair(8, 7), new IndexPair(2, 9),
-                    new IndexPair(6, 5), new IndexPair(14, 7), new IndexPair(3, 9),
-                    new IndexPair(13, 4), new IndexPair(9, 2), new IndexPair(15, 9),
-                    new IndexPair(7, 3), new IndexPair(8, 12)
-            )
-    );
+    // Tasa de mutación (2%)
+    private static final double MUTATION_RATE = 0.02;
 
     public GeneticAlgorithmService(CrossoverService crossoverService,
                                    BinaryConverterService binaryConverterService,
                                    RealConverterService realConverterService,
                                    AdaptiveFunctionService adaptiveFunctionService,
-                                   IndividualRepository individualRepository) {
+                                   IndividualService individualService,
+                                   RouletteSelectionService rouletteSelectionService,
+                                   MutationService mutationService) {
         this.crossoverService = crossoverService;
         this.binaryConverterService = binaryConverterService;
         this.realConverterService = realConverterService;
         this.adaptiveFunctionService = adaptiveFunctionService;
-        this.individualRepository = individualRepository;
+        this.individualService = individualService;
+        this.rouletteSelectionService = rouletteSelectionService;
+        this.mutationService = mutationService;
     }
 
     @Transactional
@@ -51,28 +45,55 @@ public class GeneticAlgorithmService {
                                                int L,
                                                int numGenerations,
                                                String crossoverType) {
-        // Opcional: limpiar generaciones anteriores
-        // individualRepository.deleteAll(); // descomenta si quieres borrar todo
 
         List<List<Individual>> generations = new ArrayList<>();
         List<String> currentBinaries = binaryConverterService.normalizeAllBinaries(initialBinaries, L);
 
         for (int gen = 0; gen < numGenerations; gen++) {
+            // 1. Crear generación actual
             List<Individual> generation = createOrderedGeneration(currentBinaries, xmin, xmax, L, gen);
             generations.add(generation);
-
-            // Guardar en BD
-            individualRepository.saveAll(generation);
+            individualService.saveAll(generation);
 
             if (gen < numGenerations - 1) {
-                List<String> orderedBinaries = generation.stream()
+                // 2. Seleccionar pares de padres por ruleta (11 pares → 22 padres)
+                List<Individual[]> parentPairs = rouletteSelectionService.selectPairs(generation, 11);
+
+                // 3. Extraer binarios de los padres seleccionados
+                List<String> parentBinaries = new ArrayList<>();
+                List<IndexPair> crossoverPairs = new ArrayList<>();
+                int idx = 1;
+                for (Individual[] pair : parentPairs) {
+                    parentBinaries.add(pair[0].getBinary());
+                    parentBinaries.add(pair[1].getBinary());
+                    crossoverPairs.add(new IndexPair(idx, idx + 1));
+                    idx += 2;
+                }
+
+                // 4. Aplicar cruce
+                List<String> childrenBinaries = crossoverService.performCrossover(
+                        parentBinaries, crossoverPairs, xmin, xmax, L, crossoverType
+                );
+
+                // 5. Crear individuos hijos y ordenar por adaptativo
+                List<Individual> children = createIndividualsFromBinaries(childrenBinaries, xmin, xmax, L, gen + 1);
+
+                // 6. Aplicar mutación aleatoria
+                List<Individual> mutatedChildren = mutationService.mutateAll(children, MUTATION_RATE, L);
+
+                // 7. Ordenar por adaptativo descendente y quedarse con los mejores 15
+                List<String> nextGeneration = mutatedChildren.stream()
+                        .sorted(Comparator.comparingDouble(Individual::getAdaptative).reversed())
+                        .limit(15)
                         .map(Individual::getBinary)
                         .collect(Collectors.toList());
 
-                List<IndexPair> crossoverPlan = crossoverPlans.getOrDefault(gen, Collections.emptyList());
-                List<IndexPair> mappedCrossovers = mapCrossoverIndices(crossoverPlan, orderedBinaries);
+                // 8. Si faltan individuos, rellenar con los mejores de la generación actual
+                while (nextGeneration.size() < 15) {
+                    nextGeneration.add(generation.get(nextGeneration.size()).getBinary());
+                }
 
-                currentBinaries = crossoverService.performCrossover(orderedBinaries, mappedCrossovers, xmin, xmax, L, crossoverType);
+                currentBinaries = nextGeneration;
             }
         }
 
@@ -93,9 +114,16 @@ public class GeneticAlgorithmService {
         return individuals;
     }
 
-    private List<IndexPair> mapCrossoverIndices(List<IndexPair> originalPairs, List<String> orderedBinaries) {
-        return originalPairs.stream()
-                .filter(pair -> pair.first() <= orderedBinaries.size() && pair.second() <= orderedBinaries.size())
-                .collect(Collectors.toList());
+    private List<Individual> createIndividualsFromBinaries(List<String> binaries, double xmin, double xmax, int L, int gen) {
+        return binaries.stream().map(bin -> {
+            try {
+                int dec = binaryConverterService.convertBinaryToInt(bin);
+                double real = realConverterService.toRealSingle(dec, xmin, xmax, L);
+                double fit = adaptiveFunctionService.toAdaptiveSingle(real);
+                return new Individual(bin, real, fit, gen);
+            } catch (Exception e) {
+                return new Individual(bin, 0.0, Double.NEGATIVE_INFINITY, gen);
+            }
+        }).collect(Collectors.toList());
     }
 }
