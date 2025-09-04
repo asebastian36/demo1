@@ -1,9 +1,7 @@
 package com.example.demo.service.crossover;
 
 import com.example.demo.entities.Individual;
-import com.example.demo.service.conversion.AdaptiveFunctionService;
-import com.example.demo.service.conversion.BinaryConverterService;
-import com.example.demo.service.conversion.RealConverterService;
+import com.example.demo.service.conversion.*;
 import com.example.demo.utils.IndexPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +33,6 @@ public class CrossoverService {
         strategies.put("double", doubleStrategy);
     }
 
-    /**
-     * Aplica cruces directamente sobre la población: reemplaza solo si el hijo es mejor que su padre.
-     */
     public void applyCrossover(List<Individual> population,
                                List<IndexPair> pairs,
                                double xmin,
@@ -47,50 +42,63 @@ public class CrossoverService {
 
         CrossoverStrategy strategy = strategies.getOrDefault(crossoverType, strategies.get("single"));
 
-        log.debug("Aplicando {} cruces con estrategia: {}", pairs.size(), crossoverType);
-
         for (IndexPair pair : pairs) {
-            int i1 = pair.first() - 1;  // Convertir a índice 0-based
+            int i1 = pair.first() - 1;
             int i2 = pair.second() - 1;
 
             if (i1 < 0 || i2 < 0 || i1 >= population.size() || i2 >= population.size()) {
-                log.warn("Par de cruce inválido ignorado: {} → índices {},{}", pair, i1, i2);
+                log.warn("❌ Cruce ({}, {}) ignorado: índices fuera de rango", pair.first(), pair.second());
                 continue;
             }
 
-            Individual parent1 = population.get(i1);
-            Individual parent2 = population.get(i2);
+            Individual p1 = population.get(i1);
+            Individual p2 = population.get(i2);
 
-            String bin1 = binaryConverterService.normalizeBinary(parent1.getBinary(), L);
-            String bin2 = binaryConverterService.normalizeBinary(parent2.getBinary(), L);
+            String bin1 = binaryConverterService.normalizeBinary(p1.getBinary(), L);
+            String bin2 = binaryConverterService.normalizeBinary(p2.getBinary(), L);
 
             String[] children = strategy.crossover(bin1, bin2);
-            String child1 = children[0];
-            String child2 = children[1];
+            String h1 = children[0];
+            String h2 = children[1];
 
-            double parent1Fit = parent1.getAdaptative();
-            double parent2Fit = parent2.getAdaptative();
+            double fitP1 = p1.getAdaptative();
+            double fitP2 = p2.getAdaptative();
+            double fitH1 = calculateFitness(h1, xmin, xmax, L);
+            double fitH2 = calculateFitness(h2, xmin, xmax, L);
 
-            double child1Fit = calculateFitness(child1, xmin, xmax, L);
-            double child2Fit = calculateFitness(child2, xmin, xmax, L);
+            // 🔥 Formato claro y detallado
+            log.info("""
+                    
+                    🧬 Cruce ({}, {})
+                      P1: {} - {:.3f}
+                      P2: {} - {:.3f}
+                      H1: {} - {:.3f}
+                      H2: {} - {:.3f}"""
+                    , pair.first(), pair.second()
+                    , bin1, fitP1
+                    , bin2, fitP2
+                    , h1, fitH1
+                    , h2, fitH2);
 
-            log.trace("Cruce {}×{} → H1:{}(f={:.3f}) vs P1:{}(f={:.3f}) | H2:{}(f={:.3f}) vs P2:{}(f={:.3f})",
-                    bin1, bin2, child1, child1Fit, parent1.getBinary(), parent1Fit,
-                    child2, child2Fit, parent2.getBinary(), parent2Fit);
+            boolean replaceP1 = fitH1 > fitP1;
+            boolean replaceP2 = fitH2 > fitP2;
 
-            // Reemplazar solo si el hijo es mejor
-            if (child1Fit > parent1Fit) {
+            if (replaceP1) {
                 double real = realConverterService.toRealSingle(
-                        binaryConverterService.convertBinaryToInt(child1), xmin, xmax, L);
-                population.set(i1, new Individual(child1, real, child1Fit, parent1.getGeneration()));
-                log.debug("Hijo 1 reemplaza a Padre 1 en posición {}", i1 + 1);
+                        binaryConverterService.convertBinaryToInt(h1), xmin, xmax, L);
+                population.set(i1, new Individual(h1, real, fitH1, p1.getGeneration()));
+                log.info("  ✅ H1 reemplaza a P1 ({:.3f} > {:.3f})", fitH1, fitP1);
+            } else {
+                log.info("  ❌ H1 no reemplaza a P1 ({:.3f} ≤ {:.3f})", fitH1, fitP1);
             }
 
-            if (child2Fit > parent2Fit) {
+            if (replaceP2) {
                 double real = realConverterService.toRealSingle(
-                        binaryConverterService.convertBinaryToInt(child2), xmin, xmax, L);
-                population.set(i2, new Individual(child2, real, child2Fit, parent2.getGeneration()));
-                log.debug("Hijo 2 reemplaza a Padre 2 en posición {}", i2 + 1);
+                        binaryConverterService.convertBinaryToInt(h2), xmin, xmax, L);
+                population.set(i2, new Individual(h2, real, fitH2, p2.getGeneration()));
+                log.info("  ✅ H2 reemplaza a P2 ({:.3f} > {:.3f})", fitH2, fitP2);
+            } else {
+                log.info("  ❌ H2 no reemplaza a P2 ({:.3f} ≤ {:.3f})", fitH2, fitP2);
             }
         }
     }
