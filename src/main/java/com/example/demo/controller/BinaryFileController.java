@@ -35,6 +35,7 @@ public class BinaryFileController {
                                    @RequestParam double xmin,
                                    @RequestParam double xmax,
                                    @RequestParam int L,
+                                   @RequestParam(defaultValue = "single") String crossoverType,
                                    Model model) {
         try {
             if (file.isEmpty()) {
@@ -59,7 +60,7 @@ public class BinaryFileController {
             }
 
             List<List<Individual>> generations = geneticAlgorithmService.runEvolution(
-                    binaryNumbers, xmin, xmax, L, 3  // 3 generaciones
+                    binaryNumbers, xmin, xmax, L, 3, crossoverType  // 3 generaciones
             );
 
             List<List<Double>> fitnessByGeneration = generations.stream()

@@ -5,7 +5,6 @@ import com.example.demo.repository.IndividualRepository;
 import com.example.demo.utils.IndexPair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -46,7 +45,12 @@ public class GeneticAlgorithmService {
     }
 
     @Transactional
-    public List<List<Individual>> runEvolution(List<String> initialBinaries, double xmin, double xmax, int L, int numGenerations) {
+    public List<List<Individual>> runEvolution(List<String> initialBinaries,
+                                               double xmin,
+                                               double xmax,
+                                               int L,
+                                               int numGenerations,
+                                               String crossoverType) {
         // Opcional: limpiar generaciones anteriores
         // individualRepository.deleteAll(); // descomenta si quieres borrar todo
 
@@ -68,7 +72,7 @@ public class GeneticAlgorithmService {
                 List<IndexPair> crossoverPlan = crossoverPlans.getOrDefault(gen, Collections.emptyList());
                 List<IndexPair> mappedCrossovers = mapCrossoverIndices(crossoverPlan, orderedBinaries);
 
-                currentBinaries = crossoverService.performCrossover(orderedBinaries, mappedCrossovers, xmin, xmax, L);
+                currentBinaries = crossoverService.performCrossover(orderedBinaries, mappedCrossovers, xmin, xmax, L, crossoverType);
             }
         }
 

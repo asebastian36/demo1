@@ -11,8 +11,8 @@
     <h1>Ingresar los binarios</h1>
 
     <form method="POST" action="/uploadTxt" enctype="multipart/form-data">
-        <label for="txtFile">Seleccionar un archivo .txt con los binarios:</label>
-        <input type="file" id="txtFile" name="file" accept=".txt" required>
+        <label for="file">Seleccionar un archivo .txt con los binarios:</label>
+        <input type="file" id="file" name="file" accept=".txt" required>
 
         <div class="input-group">
             <label for="xmin">xmin:</label>
@@ -27,6 +27,14 @@
         <div class="input-group">
             <label for="L">L (precisión):</label>
             <input type="number" id="L" name="L" min="1" required>
+        </div>
+
+        <div class="input-group">
+            <label for="crossoverType">Tipo de cruce:</label>
+            <select id="crossoverType" name="crossoverType">
+                <option value="single">Cruce simple (en el bit 4)</option>
+                <option value="double">Cruce doble (bits 3 al 9)</option>
+            </select>
         </div>
 
         <input type="submit" value="Procesar Datos">

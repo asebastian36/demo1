@@ -1,26 +1,39 @@
 package com.example.demo.service;
 
 import com.example.demo.utils.IndexPair;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.util.*;
 
 @Service
 public class CrossoverService {
 
-    private final BinaryConverterService binaryConverterService;
-    private final RealConverterService realConverterService;
-    private final AdaptiveFunctionService adaptiveFunctionService;
+    private final Map<String, CrossoverStrategy> strategies = new HashMap<>();
 
-    public CrossoverService(BinaryConverterService binaryConverterService,
-                            RealConverterService realConverterService,
-                            AdaptiveFunctionService adaptiveFunctionService) {
-        this.binaryConverterService = binaryConverterService;
-        this.realConverterService = realConverterService;
-        this.adaptiveFunctionService = adaptiveFunctionService;
+    @Autowired
+    private BinaryConverterService binaryConverterService;
+
+    @Autowired
+    private RealConverterService realConverterService;
+
+    @Autowired
+    private AdaptiveFunctionService adaptiveFunctionService;
+
+
+    // Inyectamos ambas estrategias
+    public CrossoverService(SinglePointCrossoverStrategy singleStrategy,
+                            DoublePointCrossoverStrategy doubleStrategy) {
+        strategies.put("single", singleStrategy);
+        strategies.put("double", doubleStrategy);
     }
 
-    public List<String> performCrossover(List<String> binaries, List<IndexPair> crossovers,
-                                         double xmin, double xmax, int L) {
+    public List<String> performCrossover(List<String> binaries,
+                                         List<IndexPair> crossovers,
+                                         double xmin, double xmax, int L,
+                                         String crossoverType) { // "single" o "double"
+
+        CrossoverStrategy strategy = strategies.getOrDefault(crossoverType, strategies.get("single"));
         List<String> nextGeneration = new ArrayList<>(binaries);
 
         for (IndexPair pair : crossovers) {
@@ -32,7 +45,7 @@ public class CrossoverService {
             String parent1 = binaryConverterService.normalizeBinary(binaries.get(i1), L);
             String parent2 = binaryConverterService.normalizeBinary(binaries.get(i2), L);
 
-            String[] children = crossoverAtBit4(parent1, parent2);
+            String[] children = strategy.crossover(parent1, parent2);
             double fit1 = calculateFitness(binaries.get(i1), xmin, xmax, L);
             double fit2 = calculateFitness(binaries.get(i2), xmin, xmax, L);
             double childFit1 = calculateFitness(children[0], xmin, xmax, L);
@@ -43,15 +56,6 @@ public class CrossoverService {
         }
 
         return nextGeneration;
-    }
-
-    private String[] crossoverAtBit4(String b1, String b2) {
-        if (b1.length() != b2.length()) {
-            throw new IllegalArgumentException("Binarios de longitud diferente: " + b1 + ", " + b2);
-        }
-        String c1 = b2.substring(0, 4) + b1.substring(4);
-        String c2 = b1.substring(0, 4) + b2.substring(4);
-        return new String[]{c1, c2};
     }
 
     private double calculateFitness(String binary, double xmin, double xmax, int L) {
