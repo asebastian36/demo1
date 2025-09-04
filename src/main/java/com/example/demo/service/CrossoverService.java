@@ -1,13 +1,15 @@
 package com.example.demo.service;
 
 import com.example.demo.utils.IndexPair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class CrossoverService {
 
+    private static final Logger log = LoggerFactory.getLogger(CrossoverService.class);
     private final Map<String, CrossoverStrategy> strategies = new HashMap<>();
     private final BinaryConverterService binaryConverterService;
     private final RealConverterService realConverterService;
@@ -35,6 +37,10 @@ public class CrossoverService {
                                          int L,
                                          String crossoverType) {
 
+        log.debug("Iniciando cruce con estrategia: {}", crossoverType);
+        log.trace("Padres: {}", parentBinaries);
+        log.trace("Pares de cruce: {}", crossoverPairs);
+
         CrossoverStrategy strategy = strategies.getOrDefault(crossoverType, strategies.get("single"));
         List<String> children = new ArrayList<>();
 
@@ -43,6 +49,7 @@ public class CrossoverService {
             int i2 = pair.second() - 1;
 
             if (i1 < 0 || i2 < 0 || i1 >= parentBinaries.size() || i2 >= parentBinaries.size()) {
+                log.warn("Par de cruce inválido ignorado: {}", pair);
                 continue;
             }
 
@@ -52,8 +59,11 @@ public class CrossoverService {
             String[] result = strategy.crossover(p1, p2);
             children.add(result[0]);
             children.add(result[1]);
+
+            log.trace("Cruce {}×{} → H1: {}, H2: {}", p1, p2, result[0], result[1]);
         }
 
+        log.debug("Cruce finalizado: {} hijos generados", children.size());
         return children;
     }
 

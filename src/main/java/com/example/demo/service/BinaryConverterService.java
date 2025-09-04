@@ -1,11 +1,16 @@
 package com.example.demo.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class BinaryConverterService {
+
+    private static final Logger log = LoggerFactory.getLogger(BinaryConverterService.class);
+
 
     public List<Integer> convertBinaryListToIntegers(List<String> binaryNumbers) {
         return binaryNumbers.stream()
@@ -15,12 +20,17 @@ public class BinaryConverterService {
 
     public int convertBinaryToInt(String binaryString) {
         String clean = binaryString.trim();
+        log.trace("Convirtiendo binario a entero: {}", clean);
         if (!clean.matches("[01]+")) {
+            log.warn("Cadena no binaria: {}", clean);
             throw new IllegalArgumentException("Cadena no binaria: " + clean);
         }
         try {
-            return Integer.parseInt(clean, 2);
+            int value = Integer.parseInt(clean, 2);
+            log.debug("Binario {} → Decimal {}", clean, value);
+            return value;
         } catch (NumberFormatException e) {
+            log.error("Número binario demasiado grande: {}", clean);
             throw new IllegalArgumentException("Número binario demasiado grande: " + clean);
         }
     }
@@ -28,9 +38,13 @@ public class BinaryConverterService {
     public String normalizeBinary(String binary, int length) {
         String clean = binary.trim();
         if (clean.length() > length) {
-            return clean.substring(clean.length() - length);
+            String result = clean.substring(clean.length() - length);
+            log.trace("Binario recortado {} → {}", clean, result);
+            return result;
         } else if (clean.length() < length) {
-            return String.format("%" + length + "s", clean).replace(' ', '0');
+            String result = String.format("%" + length + "s", clean).replace(' ', '0');
+            log.trace("Binario rellenado {} → {}", clean, result);
+            return result;
         }
         return clean;
     }

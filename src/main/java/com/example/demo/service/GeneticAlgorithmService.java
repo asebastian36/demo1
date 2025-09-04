@@ -2,6 +2,8 @@ package com.example.demo.service;
 
 import com.example.demo.entities.Individual;
 import com.example.demo.utils.IndexPair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,6 +13,7 @@ import java.util.stream.Collectors;
 @Service
 public class GeneticAlgorithmService {
 
+    private static final Logger log = LoggerFactory.getLogger(GeneticAlgorithmService.class);
     private final CrossoverService crossoverService;
     private final BinaryConverterService binaryConverterService;
     private final RealConverterService realConverterService;
@@ -46,18 +49,37 @@ public class GeneticAlgorithmService {
                                                int numGenerations,
                                                String crossoverType) {
 
+        log.info("Inicio del algoritmo genético: {} generaciones, L={}, crossover={}", numGenerations, L, crossoverType);
+        log.debug("Parámetros: xmin={}, xmax={}", xmin, xmax);
+        log.debug("Población inicial: {}", initialBinaries);
+
         List<List<Individual>> generations = new ArrayList<>();
         List<String> currentBinaries = binaryConverterService.normalizeAllBinaries(initialBinaries, L);
 
+        log.debug("Binarios normalizados a longitud {}: {}", L, currentBinaries);
+
         for (int gen = 0; gen < numGenerations; gen++) {
+
+            log.info("=== GENERACIÓN {} ===", gen + 1);
+
             // 1. Crear generación actual
             List<Individual> generation = createOrderedGeneration(currentBinaries, xmin, xmax, L, gen);
+
+            log.debug("Generación {} creada: {} individuos", gen + 1, generation.size());
+            log.trace("Individuos ordenados: {}", generation.stream()
+                    .map(i -> i.getBinary() + " → f(x)=" + String.format("%.3f", i.getAdaptative()))
+                    .collect(Collectors.toList()));
+
             generations.add(generation);
             individualService.saveAll(generation);
+
+            log.debug("Generación {} guardada en BD", gen + 1);
 
             if (gen < numGenerations - 1) {
                 // 2. Seleccionar pares de padres por ruleta (11 pares → 22 padres)
                 List<Individual[]> parentPairs = rouletteSelectionService.selectPairs(generation, 11);
+
+                log.debug("Seleccionados {} pares de padres por ruleta", parentPairs.size());
 
                 // 3. Extraer binarios de los padres seleccionados
                 List<String> parentBinaries = new ArrayList<>();
@@ -70,10 +92,14 @@ public class GeneticAlgorithmService {
                     idx += 2;
                 }
 
+                log.debug("Padres para cruce: {}", parentBinaries);
+
                 // 4. Aplicar cruce
                 List<String> childrenBinaries = crossoverService.performCrossover(
                         parentBinaries, crossoverPairs, xmin, xmax, L, crossoverType
                 );
+
+                log.debug("Hijos generados ({}): {}", childrenBinaries.size(), childrenBinaries);
 
                 // 5. Crear individuos hijos y ordenar por adaptativo
                 List<Individual> children = createIndividualsFromBinaries(childrenBinaries, xmin, xmax, L, gen + 1);

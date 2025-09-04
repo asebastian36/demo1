@@ -1,15 +1,18 @@
 package com.example.demo.service;
 
 import com.example.demo.entities.Individual;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 @Service
 public class MutationService {
 
+    private static final Logger log = LoggerFactory.getLogger(MutationService.class);
     private final Random random = new Random();
 
     public Individual mutate(Individual individual, double mutationRate, int L) {
@@ -37,8 +40,20 @@ public class MutationService {
     }
 
     public List<Individual> mutateAll(List<Individual> individuals, double mutationRate, int L) {
-        return individuals.stream()
-                .map(indiv -> mutate(indiv, mutationRate, L))
-                .collect(Collectors.toList());
+        log.info("Iniciando mutación masiva: {} individuos, tasa={}%", individuals.size(), mutationRate * 100);
+
+        List<Individual> result = new ArrayList<>();
+        int mutationsApplied = 0;
+
+        for (Individual individual : individuals) {
+            Individual mutated = mutate(individual, mutationRate, L);
+            if (!individual.getBinary().equals(mutated.getBinary())) {
+                mutationsApplied++;
+            }
+            result.add(mutated);
+        }
+
+        log.info("Mutación finalizada: {} de {} individuos mutados", mutationsApplied, individuals.size());
+        return result;
     }
 }
