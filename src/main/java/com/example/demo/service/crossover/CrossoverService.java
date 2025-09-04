@@ -1,6 +1,9 @@
-package com.example.demo.service;
+package com.example.demo.service.crossover;
 
 import com.example.demo.entities.Individual;
+import com.example.demo.service.conversion.AdaptiveFunctionService;
+import com.example.demo.service.conversion.BinaryConverterService;
+import com.example.demo.service.conversion.RealConverterService;
 import com.example.demo.utils.IndexPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

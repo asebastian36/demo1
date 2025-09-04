@@ -1,4 +1,4 @@
-package com.example.demo.service;
+package com.example.demo.service.visualization;
 
 import org.jfree.chart.*;
 import org.jfree.chart.axis.NumberAxis;

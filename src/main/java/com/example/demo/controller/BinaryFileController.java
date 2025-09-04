@@ -1,7 +1,9 @@
 package com.example.demo.controller;
 
 import com.example.demo.entities.Individual;
-import com.example.demo.service.*;
+import com.example.demo.service.algorithm.GeneticAlgorithmService;
+import com.example.demo.service.conversion.BinaryConverterService;
+import com.example.demo.service.visualization.ChartService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;

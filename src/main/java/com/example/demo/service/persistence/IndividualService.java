@@ -1,4 +1,4 @@
-package com.example.demo.service;
+package com.example.demo.service.persistence;
 
 import com.example.demo.entities.Individual;
 import com.example.demo.repository.IndividualRepository;

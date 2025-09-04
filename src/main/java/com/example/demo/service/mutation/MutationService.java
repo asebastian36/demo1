@@ -1,4 +1,4 @@
-package com.example.demo.service;
+package com.example.demo.service.mutation;
 
 import com.example.demo.entities.Individual;
 import org.slf4j.Logger;
