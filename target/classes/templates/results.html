@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados de Conversión</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="container">
+    <h1>Resultados de Conversión</h1>
+
+    <div class="parametros">
+        <h3>Parámetros usados:</h3>
+        <p>
+            <strong>xmin:</strong> <span th:text="${xmin}"></span>,
+            <strong>xmax:</strong> <span th:text="${xmax}"></span>,
+            <strong>L:</strong> <span th:text="${L}"></span>
+        </p>
+    </div>
+
+    <!-- Gráfica -->
+    <div class="chart-container" style="margin: 30px 0;">
+        <h3>Evolución de Valores Adaptativos</h3>
+        <img th:src="${chartImage}" alt="Gráfica de valores adaptativos"
+             style="width: 100%; max-width: 800px; height: auto; border: 1px solid #ddd;">
+    </div>
+
+    <div class="tabs">
+        <th:block th:each="generation, iter : ${generations}">
+            <button class="tab-button" th:classappend="${iter.first} ? 'active' : ''"
+                    th:onclick="'openTab(event, \'generation' + ${iter.index + 1} + '\')'"
+                    th:text="'Generación ' + ${iter.index + 1}">
+            </button>
+        </th:block>
+    </div>
+
+    <th:block th:each="generation, iter : ${generations}">
+        <div class="tab-content" th:id="'generation' + ${iter.index + 1}" th:classappend="${iter.first} ? 'active' : ''">
+            <h2 th:text="'Generación ' + ${iter.index + 1}"></h2>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Binario (<span th:text="${L}"></span> bits)</th>
+                        <th>Decimal</th>
+                        <th>Valor Real</th>
+                        <th>Adaptativo</th>
+                        <th>Generación</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="individual, rowStat : ${generation}">
+                        <td th:text="${rowStat.index + 1}"></td>
+                        <td th:text="${individual.binary}"></td>
+                        <td th:text="${binaryService.convertBinaryToInt(individual.binary)}"></td>
+                        <td th:text="${#numbers.formatDecimal(individual.real, 1, 3)}"></td>
+                        <td th:text="${#numbers.formatDecimal(individual.adaptative, 1, 3)}"></td>
+                        <td th:text="${individual.generation + 1}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </th:block>
+
+    <a href="/" class="back-button">Volver al inicio</a>
+</div>
+
+<script>
+    function openTab(evt, tabName) {
+        const tabContents = document.getElementsByClassName("tab-content");
+        const tabButtons = document.getElementsByClassName("tab-button");
+
+        for (let i = 0; i < tabContents.length; i++) {
+            tabContents[i].classList.remove("active");
+        }
+
+        for (let i = 0; i < tabButtons.length; i++) {
+            tabButtons[i].classList.remove("active");
+        }
+
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+</script>
+</body>
+</html>
