@@ -32,9 +32,9 @@ public class GeneticAlgorithmService {
     private final RouletteSelectionService rouletteSelectionService;
 
     private static final int POPULATION_SIZE = 4200;
-    private static final int NUM_GENERATIONS = 1000; // Dentro del rango 900-1400
-    private static final double MUTATION_RATE_PER_BIT = 0.001; // 0.1% por bit
-    private static final double CROSSOVER_RATE = 0.8; // 80%
+    private static final int NUM_GENERATIONS = 1000;
+    private static final double MUTATION_RATE_PER_BIT = 0.001;
+    private static final double CROSSOVER_RATE = 0.8;
 
     public GeneticAlgorithmService(AdaptiveFunctionService adaptiveFunctionService,
                                    RealConverterService realConverterService,
@@ -71,7 +71,6 @@ public class GeneticAlgorithmService {
         log.info("   Prob. Mutación por bit: {}%", MUTATION_RATE_PER_BIT * 100);
         log.info("   Rango: x ∈ [{}, {}]", xmin, xmax);
 
-        // Generar población inicial
         List<String> currentBinaries = generateInitialPopulation(initialBinaries, L);
         mutationService.setBounds(xmin, xmax);
 
@@ -83,11 +82,11 @@ public class GeneticAlgorithmService {
             log.info("        🎯 GENERACIÓN {} de {}", gen + 1, NUM_GENERATIONS);
             log.info("════════════════════════════════════════════════");
 
+            // ✅ Creamos la generación, pero NO imprimimos cada individuo
             List<Individual> generation = createOrderedGeneration(currentBinaries, xmin, xmax, L, gen);
             generations.add(generation);
 
-            //  solo para pruebas
-            //  individualService.saveAll(generation);
+            individualService.saveAll(generation);
 
             if (gen < NUM_GENERATIONS - 1) {
                 log.info("→ SELECCIÓN POR RULETA: Seleccionando {} parejas de padres...", POPULATION_SIZE / 2);
@@ -108,10 +107,11 @@ public class GeneticAlgorithmService {
 
                     String[] children;
                     if (Math.random() < CROSSOVER_RATE) {
-                        children = crossoverService.crossoverWithLogging(bin1, bin2, crossoverType, i+1, L, xmin, xmax);
+                        children = crossoverService.crossoverWithLogging(bin1, bin2, crossoverType, i + 1, L, xmin, xmax);
                         crossoverCount++;
                     } else {
                         children = new String[]{bin1, bin2};
+                        // ❌ Comentamos log detallado de "sin cruce" para reducir ruido
                         log.debug("  Pareja {}: SIN CRUCE (se mantienen padres)", i+1);
                     }
 
@@ -176,13 +176,18 @@ public class GeneticAlgorithmService {
             individuals.add(new Individual(binaries.get(i), reals.get(i), fitnessValues.get(i), generationIndex));
         }
 
+        // Ordenamos, pero NO imprimimos cada individuo
         individuals.sort(Comparator.comparingDouble(Individual::getAdaptative).reversed());
+
+        // ❌ ELIMINADO: log.trace de individuos → ¡esto generaba miles de líneas!
+        // log.trace("Generación {} ordenada: {}", generationIndex + 1, ...);
+
         return individuals;
     }
 
     private void verifyConvergence(List<Individual> finalGeneration) {
         long countConverged = finalGeneration.stream()
-                .filter(ind -> Math.abs(Math.abs(ind.getReal()) - 3.0) < 0.1) // x ≈ ±3
+                .filter(ind -> Math.abs(Math.abs(ind.getReal()) - 3.0) < 0.1)
                 .count();
 
         double percentage = (double) countConverged / finalGeneration.size() * 100;

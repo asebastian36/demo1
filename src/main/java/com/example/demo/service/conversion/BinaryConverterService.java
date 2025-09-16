@@ -3,6 +3,7 @@ package com.example.demo.service.conversion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -10,7 +11,6 @@ import java.util.stream.Collectors;
 public class BinaryConverterService {
 
     private static final Logger log = LoggerFactory.getLogger(BinaryConverterService.class);
-
 
     public List<Integer> convertBinaryListToIntegers(List<String> binaryNumbers) {
         return binaryNumbers.stream()
@@ -20,14 +20,14 @@ public class BinaryConverterService {
 
     public int convertBinaryToInt(String binaryString) {
         String clean = binaryString.trim();
-        log.trace("Convirtiendo binario a entero: {}", clean);
+        // ❌ ELIMINADO: log.trace("Convirtiendo binario a entero: {}", clean);
         if (!clean.matches("[01]+")) {
             log.warn("Cadena no binaria: {}", clean);
             throw new IllegalArgumentException("Cadena no binaria: " + clean);
         }
         try {
             int value = Integer.parseInt(clean, 2);
-            log.debug("Binario {} → Decimal {}", clean, value);
+            // ❌ ELIMINADO: log.debug("Binario {} → Decimal {}", clean, value);
             return value;
         } catch (NumberFormatException e) {
             log.error("Número binario demasiado grande: {}", clean);
@@ -39,11 +39,13 @@ public class BinaryConverterService {
         String clean = binary.trim();
         if (clean.length() > length) {
             String result = clean.substring(clean.length() - length);
-            log.trace("Binario recortado {} → {}", clean, result);
+            // ❌ Opcional: puedes eliminar este log también si no lo necesitas
+            // log.trace("Binario recortado {} → {}", clean, result);
             return result;
         } else if (clean.length() < length) {
             String result = String.format("%" + length + "s", clean).replace(' ', '0');
-            log.trace("Binario rellenado {} → {}", clean, result);
+            // ❌ Opcional: puedes eliminar este log también
+            // log.trace("Binario rellenado {} → {}", clean, result);
             return result;
         }
         return clean;
