@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 @Service
 public class CrossoverService {
@@ -20,6 +21,7 @@ public class CrossoverService {
     private final RealConverterService realConverterService;
     private final AdaptiveFunctionService adaptiveFunctionService;
     private final Map<String, CrossoverStrategy> strategies = new HashMap<>();
+    private final Random random = new Random();
 
     public CrossoverService(SinglePointCrossoverStrategy singleStrategy,
                             DoublePointCrossoverStrategy doubleStrategy,
@@ -33,74 +35,43 @@ public class CrossoverService {
         strategies.put("double", doubleStrategy);
     }
 
-    public void applyCrossover(List<Individual> population,
-                               List<IndexPair> pairs,
-                               double xmin,
-                               double xmax,
-                               int L,
-                               String crossoverType) {
-
+    // Método nuevo: cruce con logs
+    public String[] crossoverWithLogging(String parent1, String parent2, String crossoverType, int pairIndex, int L, double xmin, double xmax) {
         CrossoverStrategy strategy = strategies.getOrDefault(crossoverType, strategies.get("single"));
 
-        for (IndexPair pair : pairs) {
-            int i1 = pair.first() - 1;
-            int i2 = pair.second() - 1;
-
-            if (i1 < 0 || i2 < 0 || i1 >= population.size() || i2 >= population.size()) {
-                log.warn("❌ Cruce ({}, {}) ignorado: índices fuera de rango", pair.first(), pair.second());
-                continue;
-            }
-
-            Individual p1 = population.get(i1);
-            Individual p2 = population.get(i2);
-
-            String bin1 = binaryConverterService.normalizeBinary(p1.getBinary(), L);
-            String bin2 = binaryConverterService.normalizeBinary(p2.getBinary(), L);
-
-            String[] children = strategy.crossover(bin1, bin2);
-            String h1 = children[0];
-            String h2 = children[1];
-
-            double fitP1 = p1.getAdaptative();
-            double fitP2 = p2.getAdaptative();
-            double fitH1 = calculateFitness(h1, xmin, xmax, L);
-            double fitH2 = calculateFitness(h2, xmin, xmax, L);
-
-            // 🔥 Formato claro y detallado
-            log.info("""
-                    
-                    🧬 Cruce ({}, {})
-                      P1: {} - {:.3f}
-                      P2: {} - {:.3f}
-                      H1: {} - {:.3f}
-                      H2: {} - {:.3f}"""
-                    , pair.first(), pair.second()
-                    , bin1, fitP1
-                    , bin2, fitP2
-                    , h1, fitH1
-                    , h2, fitH2);
-
-            boolean replaceP1 = fitH1 > fitP1;
-            boolean replaceP2 = fitH2 > fitP2;
-
-            if (replaceP1) {
-                double real = realConverterService.toRealSingle(
-                        binaryConverterService.convertBinaryToInt(h1), xmin, xmax, L);
-                population.set(i1, new Individual(h1, real, fitH1, p1.getGeneration()));
-                log.info("  ✅ H1 reemplaza a P1 ({:.3f} > {:.3f})", fitH1, fitP1);
-            } else {
-                log.info("  ❌ H1 no reemplaza a P1 ({:.3f} ≤ {:.3f})", fitH1, fitP1);
-            }
-
-            if (replaceP2) {
-                double real = realConverterService.toRealSingle(
-                        binaryConverterService.convertBinaryToInt(h2), xmin, xmax, L);
-                population.set(i2, new Individual(h2, real, fitH2, p2.getGeneration()));
-                log.info("  ✅ H2 reemplaza a P2 ({:.3f} > {:.3f})", fitH2, fitP2);
-            } else {
-                log.info("  ❌ H2 no reemplaza a P2 ({:.3f} ≤ {:.3f})", fitH2, fitP2);
-            }
+        int point = -1;
+        if (strategy instanceof SinglePointCrossoverStrategy) {
+            point = 1 + random.nextInt(L - 1);
+            ((SinglePointCrossoverStrategy) strategy).setForcedPoint(point);
         }
+
+        String[] children = strategy.crossover(parent1, parent2);
+
+        if (strategy instanceof SinglePointCrossoverStrategy) {
+            ((SinglePointCrossoverStrategy) strategy).clearForcedPoint();
+        }
+
+        // Calcular fitness
+        double fitP1 = calculateFitness(parent1, xmin, xmax, L);
+        double fitP2 = calculateFitness(parent2, xmin, xmax, L);
+        double fitH1 = calculateFitness(children[0], xmin, xmax, L);
+        double fitH2 = calculateFitness(children[1], xmin, xmax, L);
+
+        log.info("""
+                🧬 Pareja {}: Cruce de un punto
+                  Padre 1: {} → f(x) = {:.3f}
+                  Padre 2: {} → f(x) = {:.3f}
+                  Punto de corte: {}
+                  Hijo 1:  {} → f(x) = {:.3f}
+                  Hijo 2:  {} → f(x) = {:.3f}""",
+                pairIndex,
+                parent1, fitP1,
+                parent2, fitP2,
+                point == -1 ? "N/A" : point,
+                children[0], fitH1,
+                children[1], fitH2);
+
+        return children;
     }
 
     private double calculateFitness(String binary, double xmin, double xmax, int L) {
@@ -111,10 +82,5 @@ public class CrossoverService {
         } catch (Exception e) {
             return Double.NEGATIVE_INFINITY;
         }
-    }
-
-    public String[] crossover(String parent1, String parent2, String crossoverType) {
-        CrossoverStrategy strategy = strategies.getOrDefault(crossoverType, strategies.get("single"));
-        return strategy.crossover(parent1, parent2);
     }
 }
