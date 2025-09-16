@@ -2,17 +2,15 @@ package com.example.demo.service.algorithm;
 
 import com.example.demo.entities.Individual;
 import com.example.demo.service.crossover.CrossoverService;
-import com.example.demo.service.conversion.AdaptiveFunctionService;
-import com.example.demo.service.conversion.BinaryConverterService;
-import com.example.demo.service.conversion.RealConverterService;
+import com.example.demo.service.conversion.*;
 import com.example.demo.service.mutation.MutationService;
 import com.example.demo.service.persistence.IndividualService;
+import com.example.demo.service.selection.RouletteSelectionService;
 import com.example.demo.utils.IndexPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -27,35 +25,28 @@ public class GeneticAlgorithmService {
     private final BinaryConverterService binaryConverterService;
     private final IndividualService individualService;
     private final RealConverterService realConverterService;
+    private final RouletteSelectionService rouletteSelectionService; // NUEVO
 
-    // Planes de cruce por generación
-    private final Map<Integer, List<IndexPair>> crossoverPlans = Map.of(
-            0, Arrays.asList(
-                    new IndexPair(4, 14), new IndexPair(3, 7), new IndexPair(8, 9),
-                    new IndexPair(15, 1), new IndexPair(13, 9), new IndexPair(7, 8),
-                    new IndexPair(9, 10), new IndexPair(5, 9), new IndexPair(15, 7),
-                    new IndexPair(9, 1), new IndexPair(3, 4)
-            ),
-            1, Arrays.asList(
-                    new IndexPair(15, 3), new IndexPair(8, 7), new IndexPair(2, 9),
-                    new IndexPair(6, 5), new IndexPair(14, 7), new IndexPair(3, 9),
-                    new IndexPair(13, 4), new IndexPair(9, 2), new IndexPair(15, 9),
-                    new IndexPair(7, 3), new IndexPair(8, 12)
-            )
-    );
+    private static final int POPULATION_SIZE = 4200;
+    private static final int NUM_GENERATIONS = 1000; // Puedes hacerlo configurable
+    private static final double MUTATION_RATE_PER_BIT = 0.001; // 0.1% por bit
+    private static final double CROSSOVER_RATE = 0.8; // 80% de parejas cruzan
 
     public GeneticAlgorithmService(AdaptiveFunctionService adaptiveFunctionService,
                                    RealConverterService realConverterService,
                                    CrossoverService crossoverService,
                                    MutationService mutationService,
                                    BinaryConverterService binaryConverterService,
-                                   IndividualService individualService) {
+                                   IndividualService individualService,
+                                   RouletteSelectionService rouletteSelectionService) { // Añadido
+        this.adaptiveFunctionService = adaptiveFunctionService;
+        this.realConverterService = realConverterService;
         this.crossoverService = crossoverService;
         this.mutationService = mutationService;
         this.binaryConverterService = binaryConverterService;
         this.individualService = individualService;
-        this.realConverterService = realConverterService;
-        this.adaptiveFunctionService = adaptiveFunctionService;
+        this.rouletteSelectionService = rouletteSelectionService; // Inyectado
+        this.mutationService.setBounds(-3, 3); // Por defecto, ajustable
     }
 
     @Transactional
@@ -63,48 +54,114 @@ public class GeneticAlgorithmService {
                                                double xmin,
                                                double xmax,
                                                int L,
-                                               int numGenerations,
+                                               int numGenerationsIgnored, // Ignoramos este parámetro
                                                String crossoverType) {
 
-        log.info("Inicio del algoritmo genético: {} generaciones, L={}, crossover={}", numGenerations, L, crossoverType);
-        log.debug("Población inicial: {}", initialBinaries);
+        log.info("Inicio del algoritmo genético: {} generaciones, L={}, crossover={}", NUM_GENERATIONS, L, crossoverType);
+
+        // 1. Generar población inicial (4200 individuos)
+        List<String> currentBinaries = generateInitialPopulation(initialBinaries, L);
+
+        // Setear bounds para mutación
+        mutationService.setBounds(xmin, xmax);
 
         List<List<Individual>> generations = new ArrayList<>();
-        List<String> currentBinaries = binaryConverterService.normalizeAllBinaries(initialBinaries, L);
 
-        for (int gen = 0; gen < numGenerations; gen++) {
+        for (int gen = 0; gen < NUM_GENERATIONS; gen++) {
             log.info("=== GENERACIÓN {} ===", gen + 1);
 
-            // Crear y ordenar por adaptativo descendente
+            // Crear generación actual (ordenada)
             List<Individual> generation = createOrderedGeneration(currentBinaries, xmin, xmax, L, gen);
             generations.add(generation);
             individualService.saveAll(generation);
 
-            log.debug("Generación {} creada y guardada: {} individuos", gen + 1, generation.size());
+            if (gen < NUM_GENERATIONS - 1) {
+                // 2. Selección por ruleta → padres
+                List<Individual[]> parentPairs = rouletteSelectionService.selectPairs(generation, POPULATION_SIZE / 2);
 
-            if (gen < numGenerations - 1) {
-                // Obtener pares de cruce según generación
-                List<IndexPair> crossoverPairs = crossoverPlans.getOrDefault(gen, Collections.emptyList());
-                log.debug("Aplicando {} cruces en generación {}", crossoverPairs.size(), gen + 1);
+                // 3. Cruce → hijos
+                List<Individual> offspring = new ArrayList<>();
+                Random rand = new Random();
 
-                // Aplicar cruce directo (reemplazo posicional)
-                crossoverService.applyCrossover(generation, crossoverPairs, xmin, xmax, L, crossoverType);
+                for (Individual[] pair : parentPairs) {
+                    Individual p1 = pair[0];
+                    Individual p2 = pair[1];
 
-                // Aplicar mutación aleatoria in-situ
-                mutationService.applyToGeneration(generation, 0.02, L);
-                log.debug("Mutación aplicada a generación {}", gen + 1);
+                    String bin1 = binaryConverterService.normalizeBinary(p1.getBinary(), L);
+                    String bin2 = binaryConverterService.normalizeBinary(p2.getBinary(), L);
 
-                // Actualizar binarios para próxima generación
-                currentBinaries = generation.stream()
+                    String[] children;
+                    if (rand.nextDouble() < CROSSOVER_RATE) {
+                        children = crossoverService.crossover(bin1, bin2, crossoverType); // Método modificado abajo
+                    } else {
+                        children = new String[]{bin1, bin2}; // Sin cruce
+                    }
+
+                    // Crear hijos (sin evaluar aún)
+                    for (String childBinary : children) {
+                        int decimal = binaryConverterService.convertBinaryToInt(childBinary);
+                        double real = realConverterService.toRealSingle(decimal, xmin, xmax, L);
+                        double adaptative = adaptiveFunctionService.toAdaptiveSingle(real);
+                        offspring.add(new Individual(childBinary, real, adaptative, gen + 1));
+                    }
+                }
+
+                // 4. Mutación
+                mutationService.applyToGeneration(offspring, MUTATION_RATE_PER_BIT, L);
+
+                // 5. Reemplazo: nueva generación = hijos
+                currentBinaries = offspring.stream()
                         .map(Individual::getBinary)
                         .collect(Collectors.toList());
             }
         }
 
+        // 6. Verificar convergencia (≥80% en x ≈ ±1)
+        verifyConvergence(generations.get(generations.size() - 1));
+
         log.info("Algoritmo finalizado. Total generaciones: {}", generations.size());
         return generations;
     }
 
+    private List<String> generateInitialPopulation(List<String> initialBinaries, int L) {
+        List<String> population = new ArrayList<>();
+        Random rand = new Random();
+
+        // Usar los binarios iniciales si existen
+        for (String bin : initialBinaries) {
+            if (population.size() < POPULATION_SIZE) {
+                population.add(binaryConverterService.normalizeBinary(bin, L));
+            }
+        }
+
+        // Completar con aleatorios si es necesario
+        while (population.size() < POPULATION_SIZE) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < L; i++) {
+                sb.append(rand.nextBoolean() ? '1' : '0');
+            }
+            population.add(sb.toString());
+        }
+
+        log.info("Población inicial generada: {} individuos", population.size());
+        return population;
+    }
+
+    private void verifyConvergence(List<Individual> finalGeneration) {
+        long countConverged = finalGeneration.stream()
+                .filter(ind -> Math.abs(Math.abs(ind.getReal()) - 3.0) < 0.1) // x ≈ ±3
+                .count();
+
+        double percentage = (double) countConverged / finalGeneration.size() * 100;
+        log.info("Convergencia final: {}% en x ≈ ±3 ({} de {} individuos)",
+                String.format("%.2f", percentage), countConverged, finalGeneration.size());
+
+        if (percentage >= 80) {
+            log.info("✅ ¡Convergencia exitosa! (≥80% en x ≈ ±3)");
+        } else {
+            log.warn("⚠️ Convergencia insuficiente (<80% en x ≈ ±3)");
+        }
+    }
     private List<Individual> createOrderedGeneration(List<String> binaries, double xmin, double xmax, int L, int generationIndex) {
         List<Integer> decimals = binaryConverterService.convertBinaryListToIntegers(binaries);
         List<Double> reals = realConverterService.toReal(decimals, xmin, xmax, L);
@@ -125,4 +182,5 @@ public class GeneticAlgorithmService {
 
         return individuals;
     }
+    // ... (el resto de métodos como createOrderedGeneration se mantienen igual)
 }

@@ -112,4 +112,9 @@ public class CrossoverService {
             return Double.NEGATIVE_INFINITY;
         }
     }
+
+    public String[] crossover(String parent1, String parent2, String crossoverType) {
+        CrossoverStrategy strategy = strategies.getOrDefault(crossoverType, strategies.get("single"));
+        return strategy.crossover(parent1, parent2);
+    }
 }

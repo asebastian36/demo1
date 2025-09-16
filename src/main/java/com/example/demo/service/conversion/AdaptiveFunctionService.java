@@ -12,11 +12,12 @@ public class AdaptiveFunctionService {
 
     private static final Logger log = LoggerFactory.getLogger(AdaptiveFunctionService.class);
 
+    // Cambiado a f(x) = (x^2 - 1)^2
     public List<Double> toAdaptive(List<Double> realValues) {
-        log.debug("Aplicando función adaptativa f(x) = x² + 2x + 5 a {} valores", realValues.size());
+        log.debug("Aplicando función adaptativa f(x) = (x² - 1)² a {} valores", realValues.size());
         return realValues.stream()
                 .map(x -> {
-                    double result = x * x + 2 * x + 5;
+                    double result = Math.pow(x * x - 1, 2);
                     log.trace("f({}) = {:.3f}", x, result);
                     return result;
                 })
@@ -24,7 +25,7 @@ public class AdaptiveFunctionService {
     }
 
     public double toAdaptiveSingle(double x) {
-        double result = x * x + 2 * x + 5;
+        double result = Math.pow(x * x - 1, 2);
         log.trace("toAdaptiveSingle: f({}) = {:.3f}", x, result);
         return result;
     }
