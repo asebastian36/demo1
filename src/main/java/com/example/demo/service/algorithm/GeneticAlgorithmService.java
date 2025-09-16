@@ -85,7 +85,9 @@ public class GeneticAlgorithmService {
 
             List<Individual> generation = createOrderedGeneration(currentBinaries, xmin, xmax, L, gen);
             generations.add(generation);
-            individualService.saveAll(generation);
+
+            //  solo para pruebas
+            //  individualService.saveAll(generation);
 
             if (gen < NUM_GENERATIONS - 1) {
                 log.info("→ SELECCIÓN POR RULETA: Seleccionando {} parejas de padres...", POPULATION_SIZE / 2);
