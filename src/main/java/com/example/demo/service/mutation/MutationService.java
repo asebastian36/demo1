@@ -1,15 +1,10 @@
 package com.example.demo.service.mutation;
 
 import com.example.demo.entities.Individual;
-import com.example.demo.service.conversion.AdaptiveFunctionService;
-import com.example.demo.service.conversion.BinaryConverterService;
-import com.example.demo.service.conversion.RealConverterService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.demo.service.conversion.*;
+import org.slf4j.*;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 @Service
 public class MutationService {

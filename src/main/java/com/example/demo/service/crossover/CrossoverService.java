@@ -1,16 +1,9 @@
 package com.example.demo.service.crossover;
 
-import com.example.demo.entities.Individual;
 import com.example.demo.service.conversion.*;
-import com.example.demo.utils.IndexPair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.*;
 import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 @Service
 public class CrossoverService {

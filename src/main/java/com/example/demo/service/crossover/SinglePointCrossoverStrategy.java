@@ -1,7 +1,6 @@
 package com.example.demo.service.crossover;
 
 import org.springframework.stereotype.Component;
-
 import java.util.Random;
 
 @Component

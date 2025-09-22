@@ -2,19 +2,14 @@ package com.example.demo.service.algorithm;
 
 import com.example.demo.entities.Individual;
 import com.example.demo.service.crossover.CrossoverService;
-import com.example.demo.service.conversion.AdaptiveFunctionService;
-import com.example.demo.service.conversion.BinaryConverterService;
-import com.example.demo.service.conversion.RealConverterService;
+import com.example.demo.service.conversion.*;
 import com.example.demo.service.mutation.MutationService;
 import com.example.demo.service.persistence.IndividualService;
 import com.example.demo.service.selection.RouletteSelectionService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Duration;
-import java.time.Instant;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,7 +27,7 @@ public class GeneticAlgorithmService {
     private final RouletteSelectionService rouletteSelectionService;
 
     private static final int POPULATION_SIZE = 4200;
-    private static final int NUM_GENERATIONS = 1000;
+    private static final int NUM_GENERATIONS = 50;
     private static final double MUTATION_RATE_PER_BIT = 0.001;
     private static final double CROSSOVER_RATE = 0.8;
 
@@ -111,7 +106,6 @@ public class GeneticAlgorithmService {
                         crossoverCount++;
                     } else {
                         children = new String[]{bin1, bin2};
-                        // ❌ Comentamos log detallado de "sin cruce" para reducir ruido
                         log.debug("  Pareja {}: SIN CRUCE (se mantienen padres)", i+1);
                     }
 
@@ -179,9 +173,6 @@ public class GeneticAlgorithmService {
         // Ordenamos, pero NO imprimimos cada individuo
         individuals.sort(Comparator.comparingDouble(Individual::getAdaptative).reversed());
 
-        // ❌ ELIMINADO: log.trace de individuos → ¡esto generaba miles de líneas!
-        // log.trace("Generación {} ordenada: {}", generationIndex + 1, ...);
-
         return individuals;
     }
 
@@ -194,7 +185,7 @@ public class GeneticAlgorithmService {
         log.info(" ");
         log.info("📊 RESULTADO FINAL DE CONVERGENCIA:");
         log.info("   → Individuos en x ≈ ±3: {} de {}", countConverged, finalGeneration.size());
-        log.info("   → Porcentaje: {:.2f}%", percentage);
+        log.info("   → Porcentaje:", percentage);
 
         if (percentage >= 80) {
             log.info("🎉 ✅ ¡CONVERGENCIA EXITOSA! (≥80% en x ≈ ±3)");

@@ -10,7 +10,6 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.springframework.stereotype.Service;
-
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

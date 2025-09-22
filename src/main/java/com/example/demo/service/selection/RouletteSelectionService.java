@@ -1,13 +1,9 @@
 package com.example.demo.service.selection;
 
 import com.example.demo.entities.Individual;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.*;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 @Service
 public class RouletteSelectionService {
