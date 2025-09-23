@@ -8,12 +8,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.io.*;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Controller
@@ -47,6 +43,7 @@ public class BinaryFileController {
                                    @RequestParam(required = false, defaultValue = "30") int numGenerations,
                                    @RequestParam(required = false, defaultValue = "0.001") double mutationRate,
                                    @RequestParam(required = false, defaultValue = "0.8") double crossoverRate,
+                                   @RequestParam(required = false, defaultValue = "simple") String mutationType,
                                    Model model) {
         try {
             List<String> binaryNumbers = new ArrayList<>();
@@ -75,7 +72,7 @@ public class BinaryFileController {
 
             List<List<Individual>> generations = geneticAlgorithmService.runEvolution(
                     binaryNumbers, xmin, xmax, L, numGenerations, crossoverType,
-                    populationSize, mutationRate, crossoverRate
+                    populationSize, mutationRate, crossoverRate, mutationType
             );
 
             List<List<Double>> fitnessByGeneration = generations.stream()

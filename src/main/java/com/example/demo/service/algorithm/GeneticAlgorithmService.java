@@ -2,19 +2,14 @@ package com.example.demo.service.algorithm;
 
 import com.example.demo.entities.Individual;
 import com.example.demo.service.crossover.CrossoverService;
-import com.example.demo.service.conversion.AdaptiveFunctionService;
-import com.example.demo.service.conversion.BinaryConverterService;
-import com.example.demo.service.conversion.RealConverterService;
+import com.example.demo.service.conversion.*;
 import com.example.demo.service.mutation.MutationService;
 import com.example.demo.service.persistence.IndividualService;
 import com.example.demo.service.selection.RouletteSelectionService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Duration;
-import java.time.Instant;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -56,7 +51,8 @@ public class GeneticAlgorithmService {
                                                String crossoverType,
                                                int populationSize,
                                                double mutationRatePerBit,
-                                               double crossoverRate) {
+                                               double crossoverRate,
+                                               String mutationType) {
 
         Instant start = Instant.now();
 
@@ -65,7 +61,8 @@ public class GeneticAlgorithmService {
         log.info("   Población: {} individuos", populationSize);
         log.info("   Generaciones: {}", numGenerations);
         log.info("   Prob. Cruce: {}%", crossoverRate * 100);
-        log.info("   Prob. Mutación por bit: {}%", mutationRatePerBit * 100);
+        log.info("   Prob. Mutación: {}%", mutationRatePerBit * 100);
+        log.info("   Tipo de mutación: {}", mutationType);
         log.info("   Rango: x ∈ [{}, {}]", xmin, xmax);
 
         List<String> currentBinaries = generateInitialPopulation(initialBinaries, L, populationSize);
@@ -117,8 +114,8 @@ public class GeneticAlgorithmService {
                 log.info("→ ✅ Cruce completado: {} parejas cruzaron ({}%)", crossoverCount,
                         String.format("%.1f", (double) crossoverCount / parentPairs.size() * 100));
 
-                log.info("→ MUTACIÓN: Aplicando mutación bit a bit (probabilidad = {}% por bit)", mutationRatePerBit * 100);
-                mutationService.applyToGenerationWithLogging(offspring, mutationRatePerBit, L, gen + 1);
+                log.info("→ MUTACIÓN ({}): Aplicando con tasa = {}%", mutationType, mutationRatePerBit * 100);
+                mutationService.applyToGenerationWithLogging(offspring, mutationRatePerBit, L, gen + 1, mutationType);
 
                 currentBinaries = offspring.stream().map(Individual::getBinary).collect(Collectors.toList());
             }

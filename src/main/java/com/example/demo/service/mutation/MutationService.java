@@ -30,32 +30,80 @@ public class MutationService {
         this.xmax = xmax;
     }
 
-    public void applyToGenerationWithLogging(List<Individual> generation, double mutationRatePerBit, int L, int gen) {
-        log.info("→ Iniciando mutación en generación {} (tasa por bit: {}%)", gen, mutationRatePerBit * 100);
+    // Mutación inversiva
+    private String applyInversiveMutation(String binary, double mutationRate) {
+        if (Math.random() >= mutationRate) {
+            return binary; // No muta
+        }
+
+        if (binary.length() < 2) {
+            return binary; // No se puede invertir
+        }
+
+        // Elegir dos puntos de corte aleatorios
+        int start = random.nextInt(binary.length());
+        int end = random.nextInt(binary.length());
+
+        if (start > end) {
+            int temp = start;
+            start = end;
+            end = temp;
+        }
+
+        if (start == end) {
+            end = Math.min(end + 1, binary.length() - 1);
+        }
+
+        // Extraer segmento
+        String segment = binary.substring(start, end + 1);
+        StringBuilder reversed = new StringBuilder(segment).reverse();
+
+        // Reconstruir cadena
+        String mutated = binary.substring(0, start) + reversed.toString() + binary.substring(end + 1);
+
+        log.trace("  🔄 Mutación inversiva: {} → {} (segmento [{}:{}])", binary, mutated, start, end);
+        return mutated;
+    }
+
+    // Mutación simple (bit flip)
+    private String mutateString(String binary, double mutationRatePerBit) {
+        StringBuilder sb = new StringBuilder(binary);
+        boolean mutated = false;
+
+        for (int i = 0; i < sb.length(); i++) {
+            if (random.nextDouble() < mutationRatePerBit) {
+                char bit = sb.charAt(i);
+                char newBit = (bit == '0') ? '1' : '0';
+                sb.setCharAt(i, newBit);
+                mutated = true;
+            }
+        }
+
+        if (mutated) {
+            log.trace("  🧬 Mutación simple aplicada: {} → {}", binary, sb.toString());
+        }
+
+        return sb.toString();
+    }
+
+    // Método principal que aplica la mutación según el tipo
+    public void applyToGenerationWithLogging(List<Individual> generation, double mutationRate, int L, int gen, String mutationType) {
+        log.info("→ Iniciando mutación ({}) en generación {} (tasa: {}%)", mutationType, gen, mutationRate * 100);
         int totalMutations = 0;
         int mutatedIndividuals = 0;
 
         for (int i = 0; i < generation.size(); i++) {
             Individual original = generation.get(i);
             String originalBinary = original.getBinary();
-            StringBuilder sb = new StringBuilder(originalBinary);
-            boolean individualMutated = false;
+            String mutatedBinary;
 
-            for (int bitIndex = 0; bitIndex < sb.length(); bitIndex++) {
-                if (random.nextDouble() < mutationRatePerBit) {
-                    char oldBit = sb.charAt(bitIndex);
-                    char newBit = oldBit == '0' ? '1' : '0';
-                    sb.setCharAt(bitIndex, newBit);
-                    totalMutations++;
-                    individualMutated = true;
-
-                    log.trace("  🧬 Mutación en individuo {} (gen {}), bit {}: {} → {}",
-                            i + 1, gen, bitIndex + 1, oldBit, newBit);
-                }
+            if ("inversive".equals(mutationType)) {
+                mutatedBinary = applyInversiveMutation(originalBinary, mutationRate);
+            } else {
+                mutatedBinary = mutateString(originalBinary, mutationRate);
             }
 
-            if (individualMutated) {
-                String mutatedBinary = sb.toString();
+            if (!originalBinary.equals(mutatedBinary)) {
                 int decimal = binaryConverterService.convertBinaryToInt(mutatedBinary);
                 double real = realConverterService.toRealSingle(decimal, xmin, xmax, L);
                 double adaptative = adaptiveFunctionService.toAdaptiveSingle(real);
@@ -69,10 +117,9 @@ public class MutationService {
             }
         }
 
-        log.info("→ 🧬 Mutación finalizada en generación {}: {} individuos mutados ({}%), {} mutaciones totales",
-                gen,
+        log.info("→ 🧬 Mutación ({}) finalizada en generación {}: {} individuos mutados ({}%)",
+                mutationType, gen,
                 mutatedIndividuals,
-                String.format("%.2f", (double) mutatedIndividuals / generation.size() * 100),
-                totalMutations);
+                String.format("%.2f", (double) mutatedIndividuals / generation.size() * 100));
     }
 }
