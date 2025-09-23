@@ -3,30 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ingresar los binarios</title>
+    <title>Configurar Algoritmo Genético</title>
     <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <script>
+        function toggleMode() {
+            const mode = document.getElementById('mode').value;
+            const fileGroup = document.getElementById('file-group');
+            const randomParams = document.getElementById('random-params');
+            const fileInput = document.getElementById('file');
+
+            if (mode === 'file') {
+                fileGroup.style.display = 'block';
+                randomParams.style.display = 'none';
+                fileInput.setAttribute('required', 'required');
+            } else {
+                fileGroup.style.display = 'none';
+                randomParams.style.display = 'block';
+                fileInput.removeAttribute('required');
+            }
+        }
+    </script>
 </head>
-<body>
+<body onload="toggleMode()">
 <div class="container">
-    <h1>Ingresar los binarios</h1>
+    <h1>Configurar Algoritmo Genético</h1>
 
     <form method="POST" action="/uploadTxt" enctype="multipart/form-data">
-        <label for="file">Seleccionar un archivo .txt con los binarios:</label>
-        <input type="file" id="file" name="file" accept=".txt" required>
+        <div class="input-group">
+            <label for="mode">Modo de entrada:</label>
+            <select id="mode" name="mode" onchange="toggleMode()">
+                <option value="file">Usar archivo .txt</option>
+                <option value="random">Generar individuos aleatorios</option>
+            </select>
+        </div>
 
+        <!-- Grupo para archivo -->
+        <div id="file-group" class="input-group">
+            <label for="file">Seleccionar un archivo .txt con los binarios:</label>
+            <input type="file" id="file" name="file" accept=".txt">
+        </div>
+
+        <!-- Parámetros comunes -->
         <div class="input-group">
             <label for="xmin">xmin:</label>
-            <input type="number" id="xmin" name="xmin" step="any" required>
+            <input type="number" id="xmin" name="xmin" step="any" value="-3" required>
         </div>
 
         <div class="input-group">
             <label for="xmax">xmax:</label>
-            <input type="number" id="xmax" name="xmax" step="any" required>
+            <input type="number" id="xmax" name="xmax" step="any" value="3" required>
         </div>
 
         <div class="input-group">
             <label for="L">L (precisión):</label>
-            <input type="number" id="L" name="L" min="1" required>
+            <input type="number" id="L" name="L" min="1" value="15" required>
         </div>
 
         <div class="input-group">
@@ -35,6 +65,31 @@
                 <option value="single">Cruce simple</option>
                 <option value="double">Cruce doble</option>
             </select>
+        </div>
+
+        <!-- Parámetros para modo aleatorio -->
+        <div id="random-params" class="input-group" style="display:none; background:#f0f8ff; padding:15px; border-radius:8px;">
+            <h3>⚙️ Parámetros del Algoritmo Genético</h3>
+
+            <div class="input-group">
+                <label for="populationSize">Tamaño de población:</label>
+                <input type="number" id="populationSize" name="populationSize" min="10" value="4200" required>
+            </div>
+
+            <div class="input-group">
+                <label for="numGenerations">Número de generaciones:</label>
+                <input type="number" id="numGenerations" name="numGenerations" min="10" value="30" required>
+            </div>
+
+            <div class="input-group">
+                <label for="mutationRate">Tasa de mutación por bit (0.0 a 1.0):</label>
+                <input type="number" id="mutationRate" name="mutationRate" step="0.001" min="0.0" max="1.0" value="0.001" required>
+            </div>
+
+            <div class="input-group">
+                <label for="crossoverRate">Tasa de cruce (0.0 a 1.0):</label>
+                <input type="number" id="crossoverRate" name="crossoverRate" step="0.01" min="0.0" max="1.0" value="0.8" required>
+            </div>
         </div>
 
         <input type="submit" value="Procesar Datos">

@@ -8,8 +8,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.*;
-import java.util.*;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Controller
@@ -33,36 +37,45 @@ public class BinaryFileController {
     }
 
     @PostMapping("/uploadTxt")
-    public String handleFileUpload(@RequestParam("file") MultipartFile file,
+    public String handleFileUpload(@RequestParam("mode") String mode,
+                                   @RequestParam(required = false) MultipartFile file,
                                    @RequestParam double xmin,
                                    @RequestParam double xmax,
                                    @RequestParam int L,
                                    @RequestParam(defaultValue = "single") String crossoverType,
+                                   @RequestParam(required = false, defaultValue = "4200") int populationSize,
+                                   @RequestParam(required = false, defaultValue = "30") int numGenerations,
+                                   @RequestParam(required = false, defaultValue = "0.001") double mutationRate,
+                                   @RequestParam(required = false, defaultValue = "0.8") double crossoverRate,
                                    Model model) {
         try {
-            if (file.isEmpty()) {
-                throw new IllegalArgumentException("El archivo está vacío");
-            }
-            if (!Objects.requireNonNull(file.getOriginalFilename()).toLowerCase().endsWith(".txt")) {
-                throw new IllegalArgumentException("Solo se permiten archivos .txt");
-            }
-
             List<String> binaryNumbers = new ArrayList<>();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (!line.trim().isEmpty()) {
-                        binaryNumbers.add(line.trim());
+
+            if ("file".equals(mode)) {
+                if (file == null || file.isEmpty()) {
+                    throw new IllegalArgumentException("Debe seleccionar un archivo .txt");
+                }
+                if (!Objects.requireNonNull(file.getOriginalFilename()).toLowerCase().endsWith(".txt")) {
+                    throw new IllegalArgumentException("Solo se permiten archivos .txt");
+                }
+
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (!line.trim().isEmpty()) {
+                            binaryNumbers.add(line.trim());
+                        }
                     }
+                }
+
+                if (binaryNumbers.isEmpty()) {
+                    throw new IllegalArgumentException("El archivo no contiene números binarios");
                 }
             }
 
-            if (binaryNumbers.isEmpty()) {
-                throw new IllegalArgumentException("El archivo no contiene números binarios");
-            }
-
             List<List<Individual>> generations = geneticAlgorithmService.runEvolution(
-                    binaryNumbers, xmin, xmax, L, 3, crossoverType  // 3 generaciones
+                    binaryNumbers, xmin, xmax, L, numGenerations, crossoverType,
+                    populationSize, mutationRate, crossoverRate
             );
 
             List<List<Double>> fitnessByGeneration = generations.stream()
@@ -86,7 +99,7 @@ public class BinaryFileController {
             model.addAttribute("error", "Error de validación: " + e.getMessage());
             return "error";
         } catch (Exception e) {
-            model.addAttribute("error", "Error al procesar el archivo: " + e.getMessage());
+            model.addAttribute("error", "Error al procesar: " + e.getMessage());
             return "error";
         }
     }
