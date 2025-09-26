@@ -1,13 +1,14 @@
 package com.example.demo.service.algorithm;
 
 import com.example.demo.entities.Individual;
-import com.example.demo.service.crossover.CrossoverService;
 import com.example.demo.service.conversion.AdaptiveFunctionService;
 import com.example.demo.service.conversion.BinaryConverterService;
 import com.example.demo.service.conversion.RealConverterService;
+import com.example.demo.service.crossover.CrossoverService;
 import com.example.demo.service.mutation.MutationService;
 import com.example.demo.service.persistence.IndividualService;
 import com.example.demo.service.selection.SelectionStrategy;
+import com.example.demo.service.population.PopulationSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,8 @@ public class GeneticAlgorithmService {
     private final BinaryConverterService binaryConverterService;
     private final IndividualService individualService;
     private final RealConverterService realConverterService;
-    private final Map<String, SelectionStrategy> selectionStrategies; // Inyectado por Spring
+    private final Map<String, SelectionStrategy> selectionStrategies;
+    private final Map<String, PopulationSource> populationSources; // Nuevo
 
     public GeneticAlgorithmService(AdaptiveFunctionService adaptiveFunctionService,
                                    RealConverterService realConverterService,
@@ -37,7 +39,8 @@ public class GeneticAlgorithmService {
                                    MutationService mutationService,
                                    BinaryConverterService binaryConverterService,
                                    IndividualService individualService,
-                                   Map<String, SelectionStrategy> selectionStrategies) {
+                                   Map<String, SelectionStrategy> selectionStrategies,
+                                   Map<String, PopulationSource> populationSources) { // Nuevo parámetro
         this.adaptiveFunctionService = adaptiveFunctionService;
         this.realConverterService = realConverterService;
         this.crossoverService = crossoverService;
@@ -45,35 +48,58 @@ public class GeneticAlgorithmService {
         this.binaryConverterService = binaryConverterService;
         this.individualService = individualService;
         this.selectionStrategies = selectionStrategies;
+        this.populationSources = populationSources; // Nueva asignación
     }
 
     @Transactional
-    public List<List<Individual>> runEvolution(List<String> initialBinaries,
-                                               double xmin,
-                                               double xmax,
-                                               int L,
-                                               String selectionType,
-                                               String crossoverType,
-                                               String mutationType,
-                                               int populationSize,
-                                               int numGenerations,
-                                               double mutationRatePerBit,
-                                               double crossoverRate) {
+    public List<List<Individual>> runEvolution(
+            List<String> fileBinaries, // Binarios del archivo (null en modo aleatorio)
+            double xmin,
+            double xmax,
+            int L,
+            String selectionType,
+            String crossoverType,
+            String mutationType,
+            int populationSize,
+            int numGenerations,
+            double mutationRatePerBit,
+            double crossoverRate,
+            String populationSourceType) { // "file" o "random"
 
         Instant start = Instant.now();
 
         log.info("🚀 INICIANDO ALGORITMO GENÉTICO PARA FUNCIÓN 5");
         log.info("   Función: f(x) = (x² - 1)² → Buscando MÁXIMO en x = ±3 (f=64)");
-        log.info("   Población: {} individuos", populationSize);
+        log.info("   Modo de población: {}", populationSourceType);
         log.info("   Generaciones: {}", numGenerations);
-        log.info("   Selección: {}", getStrategyName(selectionStrategies, selectionType));
+        log.info("   Selección: {}", selectionType);
         log.info("   Cruce: {}", crossoverType);
         log.info("   Mutación: {}", mutationType);
         log.info("   Prob. Cruce: {}%", crossoverRate * 100);
         log.info("   Prob. Mutación: {}%", mutationRatePerBit * 100);
         log.info("   Rango: x ∈ [{}, {}]", xmin, xmax);
 
-        List<String> currentBinaries = generateInitialPopulation(initialBinaries, L, populationSize);
+        // 🔑 CONFIGURAR FUENTE DE POBLACIÓN
+        PopulationSource populationSource = populationSources.get(populationSourceType);
+        if (populationSource == null) {
+            throw new IllegalArgumentException("Fuente de población desconocida: " + populationSourceType);
+        }
+
+        // Configurar datos específicos según el tipo
+        if ("file".equals(populationSourceType)) {
+            if (fileBinaries == null || fileBinaries.isEmpty()) {
+                throw new IllegalArgumentException("No se proporcionaron binarios para el modo archivo");
+            }
+            ((com.example.demo.service.population.FilePopulationSource) populationSource).setBinaries(fileBinaries);
+        } else if ("random".equals(populationSourceType)) {
+            ((com.example.demo.service.population.RandomPopulationSource) populationSource).setPopulationSize(populationSize);
+        }
+
+        // Generar población inicial
+        List<String> currentBinaries = populationSource.generatePopulation(L);
+        log.info("→ Población inicial generada ({}): {} individuos",
+                populationSource.getName(), currentBinaries.size());
+
         mutationService.setBounds(xmin, xmax);
 
         List<List<Individual>> generations = new ArrayList<>();
@@ -88,16 +114,16 @@ public class GeneticAlgorithmService {
             generations.add(generation);
 
             if (gen < numGenerations - 1) {
-                // SELECCIÓN MODULAR
+                // SELECCIÓN
                 SelectionStrategy selection = selectionStrategies.get(selectionType);
                 if (selection == null) {
                     throw new IllegalArgumentException("Tipo de selección desconocido: " + selectionType);
                 }
                 log.info("→ SELECCIÓN: {}", selection.getName());
-                List<Individual[]> parentPairs = selection.selectPairs(generation, populationSize / 2);
+                List<Individual[]> parentPairs = selection.selectPairs(generation, currentBinaries.size() / 2);
 
                 log.info("→ CRUCE: Generando {} hijos con cruce de un punto (probabilidad = {}%)",
-                        populationSize, crossoverRate * 100);
+                        currentBinaries.size(), crossoverRate * 100);
                 List<Individual> offspring = new ArrayList<>();
                 int crossoverCount = 0;
 
@@ -144,33 +170,6 @@ public class GeneticAlgorithmService {
         verifyConvergence(generations.get(generations.size() - 1));
 
         return generations;
-    }
-
-    private String getStrategyName(Map<String, SelectionStrategy> strategies, String key) {
-        SelectionStrategy strategy = strategies.get(key);
-        return strategy != null ? strategy.getName() : key;
-    }
-
-    private List<String> generateInitialPopulation(List<String> initialBinaries, int L, int populationSize) {
-        List<String> population = new ArrayList<>();
-        Random rand = new Random();
-
-        for (String bin : initialBinaries) {
-            if (population.size() < populationSize) {
-                population.add(binaryConverterService.normalizeBinary(bin, L));
-            }
-        }
-
-        while (population.size() < populationSize) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < L; i++) {
-                sb.append(rand.nextBoolean() ? '1' : '0');
-            }
-            population.add(sb.toString());
-        }
-
-        log.info("→ Población inicial generada: {} individuos", population.size());
-        return population;
     }
 
     private List<Individual> createOrderedGeneration(List<String> binaries, double xmin, double xmax, int L, int generationIndex) {

@@ -51,7 +51,7 @@ public class BinaryFileController {
                                    @RequestParam(required = false, defaultValue = "0.8") double crossoverRate,
                                    Model model) {
         try {
-            List<String> binaryNumbers = new ArrayList<>();
+            List<String> binaryNumbers = null;
 
             if ("file".equals(mode)) {
                 if (file == null || file.isEmpty()) {
@@ -61,6 +61,7 @@ public class BinaryFileController {
                     throw new IllegalArgumentException("Solo se permiten archivos .txt");
                 }
 
+                binaryNumbers = new ArrayList<>();
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
@@ -73,12 +74,18 @@ public class BinaryFileController {
                 if (binaryNumbers.isEmpty()) {
                     throw new IllegalArgumentException("El archivo no contiene números binarios");
                 }
+
+                // Normalizar binarios del archivo
+                binaryNumbers = binaryConverterService.normalizeAllBinaries(binaryNumbers, L);
             }
 
+            // Ejecutar algoritmo con el modo de población seleccionado
             List<List<Individual>> generations = geneticAlgorithmService.runEvolution(
-                    binaryNumbers, xmin, xmax, L,
+                    binaryNumbers, // Puede ser null en modo aleatorio
+                    xmin, xmax, L,
                     selectionType, crossoverType, mutationType,
-                    populationSize, numGenerations, mutationRate, crossoverRate
+                    populationSize, numGenerations, mutationRate, crossoverRate,
+                    mode // "file" o "random"
             );
 
             List<List<Double>> fitnessByGeneration = generations.stream()
