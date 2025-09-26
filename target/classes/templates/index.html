@@ -59,11 +59,28 @@
             <input type="number" id="L" name="L" min="1" value="15" required>
         </div>
 
+        <!-- Estrategias -->
+        <div class="input-group">
+            <label for="selectionType">Tipo de selección:</label>
+            <select id="selectionType" name="selectionType">
+                <option value="roulette">Ruleta</option>
+                <option value="tournament">Torneo</option>
+            </select>
+        </div>
+
         <div class="input-group">
             <label for="crossoverType">Tipo de cruce:</label>
             <select id="crossoverType" name="crossoverType">
                 <option value="single">Cruce simple</option>
                 <option value="double">Cruce doble</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="mutationType">Tipo de mutación:</label>
+            <select id="mutationType" name="mutationType">
+                <option value="simple">Mutación Simple (bit flip)</option>
+                <option value="inversive">Mutación Inversiva</option>
             </select>
         </div>
 
@@ -82,21 +99,13 @@
             </div>
 
             <div class="input-group">
-                <label for="mutationRate">Tasa de mutación por bit/individuo (0.0 a 1.0):</label>
+                <label for="mutationRate">Tasa de mutación (0.0 a 1.0):</label>
                 <input type="number" id="mutationRate" name="mutationRate" step="0.001" min="0.0" max="1.0" value="0.001" required>
             </div>
 
             <div class="input-group">
                 <label for="crossoverRate">Tasa de cruce (0.0 a 1.0):</label>
                 <input type="number" id="crossoverRate" name="crossoverRate" step="0.01" min="0.0" max="1.0" value="0.8" required>
-            </div>
-
-            <div class="input-group">
-                <label for="mutationType">Tipo de mutación:</label>
-                <select id="mutationType" name="mutationType">
-                    <option value="simple">Mutación Simple (bit flip)</option>
-                    <option value="inversive">Mutación Inversiva (inversión de segmento)</option>
-                </select>
             </div>
         </div>
 

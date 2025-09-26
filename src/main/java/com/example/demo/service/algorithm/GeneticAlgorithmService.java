@@ -2,14 +2,19 @@ package com.example.demo.service.algorithm;
 
 import com.example.demo.entities.Individual;
 import com.example.demo.service.crossover.CrossoverService;
-import com.example.demo.service.conversion.*;
+import com.example.demo.service.conversion.AdaptiveFunctionService;
+import com.example.demo.service.conversion.BinaryConverterService;
+import com.example.demo.service.conversion.RealConverterService;
 import com.example.demo.service.mutation.MutationService;
 import com.example.demo.service.persistence.IndividualService;
-import com.example.demo.service.selection.RouletteSelectionService;
-import org.slf4j.*;
+import com.example.demo.service.selection.SelectionStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.*;
+
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,7 +29,7 @@ public class GeneticAlgorithmService {
     private final BinaryConverterService binaryConverterService;
     private final IndividualService individualService;
     private final RealConverterService realConverterService;
-    private final RouletteSelectionService rouletteSelectionService;
+    private final Map<String, SelectionStrategy> selectionStrategies; // Inyectado por Spring
 
     public GeneticAlgorithmService(AdaptiveFunctionService adaptiveFunctionService,
                                    RealConverterService realConverterService,
@@ -32,14 +37,14 @@ public class GeneticAlgorithmService {
                                    MutationService mutationService,
                                    BinaryConverterService binaryConverterService,
                                    IndividualService individualService,
-                                   RouletteSelectionService rouletteSelectionService) {
+                                   Map<String, SelectionStrategy> selectionStrategies) {
         this.adaptiveFunctionService = adaptiveFunctionService;
         this.realConverterService = realConverterService;
         this.crossoverService = crossoverService;
         this.mutationService = mutationService;
         this.binaryConverterService = binaryConverterService;
         this.individualService = individualService;
-        this.rouletteSelectionService = rouletteSelectionService;
+        this.selectionStrategies = selectionStrategies;
     }
 
     @Transactional
@@ -47,12 +52,13 @@ public class GeneticAlgorithmService {
                                                double xmin,
                                                double xmax,
                                                int L,
-                                               int numGenerations,
+                                               String selectionType,
                                                String crossoverType,
+                                               String mutationType,
                                                int populationSize,
+                                               int numGenerations,
                                                double mutationRatePerBit,
-                                               double crossoverRate,
-                                               String mutationType) {
+                                               double crossoverRate) {
 
         Instant start = Instant.now();
 
@@ -60,9 +66,11 @@ public class GeneticAlgorithmService {
         log.info("   Función: f(x) = (x² - 1)² → Buscando MÁXIMO en x = ±3 (f=64)");
         log.info("   Población: {} individuos", populationSize);
         log.info("   Generaciones: {}", numGenerations);
+        log.info("   Selección: {}", getStrategyName(selectionStrategies, selectionType));
+        log.info("   Cruce: {}", crossoverType);
+        log.info("   Mutación: {}", mutationType);
         log.info("   Prob. Cruce: {}%", crossoverRate * 100);
         log.info("   Prob. Mutación: {}%", mutationRatePerBit * 100);
-        log.info("   Tipo de mutación: {}", mutationType);
         log.info("   Rango: x ∈ [{}, {}]", xmin, xmax);
 
         List<String> currentBinaries = generateInitialPopulation(initialBinaries, L, populationSize);
@@ -80,8 +88,13 @@ public class GeneticAlgorithmService {
             generations.add(generation);
 
             if (gen < numGenerations - 1) {
-                log.info("→ SELECCIÓN POR RULETA: Seleccionando {} parejas de padres...", populationSize / 2);
-                List<Individual[]> parentPairs = rouletteSelectionService.selectPairs(generation, populationSize / 2);
+                // SELECCIÓN MODULAR
+                SelectionStrategy selection = selectionStrategies.get(selectionType);
+                if (selection == null) {
+                    throw new IllegalArgumentException("Tipo de selección desconocido: " + selectionType);
+                }
+                log.info("→ SELECCIÓN: {}", selection.getName());
+                List<Individual[]> parentPairs = selection.selectPairs(generation, populationSize / 2);
 
                 log.info("→ CRUCE: Generando {} hijos con cruce de un punto (probabilidad = {}%)",
                         populationSize, crossoverRate * 100);
@@ -131,6 +144,11 @@ public class GeneticAlgorithmService {
         verifyConvergence(generations.get(generations.size() - 1));
 
         return generations;
+    }
+
+    private String getStrategyName(Map<String, SelectionStrategy> strategies, String key) {
+        SelectionStrategy strategy = strategies.get(key);
+        return strategy != null ? strategy.getName() : key;
     }
 
     private List<String> generateInitialPopulation(List<String> initialBinaries, int L, int populationSize) {
