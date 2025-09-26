@@ -14,7 +14,7 @@ public class MutationService {
     private final BinaryConverterService binaryConverterService;
     private final RealConverterService realConverterService;
     private final AdaptiveFunctionService adaptiveFunctionService;
-    private final Map<String, MutationStrategy> mutationStrategies; // Inyectado por Spring
+    private final Map<String, MutationStrategy> mutationStrategies;
 
     private double xmin, xmax;
 
@@ -42,7 +42,8 @@ public class MutationService {
             double mutationRate,
             int L,
             int gen,
-            String mutationType) {
+            String mutationType,
+            String functionType) { // ← Añadido functionType
 
         MutationStrategy strategy = mutationStrategies.get(mutationType);
         if (strategy == null) {
@@ -63,7 +64,7 @@ public class MutationService {
             if (!originalBinary.equals(mutatedBinary)) {
                 int decimal = binaryConverterService.convertBinaryToInt(mutatedBinary);
                 double real = realConverterService.toRealSingle(decimal, xmin, xmax, L);
-                double adaptative = adaptiveFunctionService.toAdaptiveSingle(real);
+                double adaptative = adaptiveFunctionService.toAdaptiveSingle(real, functionType);
 
                 Individual mutated = new Individual(mutatedBinary, real, adaptative, original.getGeneration());
                 generation.set(i, mutated);

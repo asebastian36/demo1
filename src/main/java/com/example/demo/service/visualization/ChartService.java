@@ -1,5 +1,6 @@
 package com.example.demo.service.visualization;
 
+import com.example.demo.service.function.FitnessFunction;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
@@ -10,31 +11,45 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.springframework.stereotype.Service;
+
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ChartService {
 
-    public String generateAdaptativeChart(List<List<Double>> fitnessValuesByGeneration) throws IOException {
-        // Creamos una sola serie: "Mejor adaptativo por generación"
+    private final Map<String, FitnessFunction> fitnessFunctions;
+
+    public ChartService(Map<String, FitnessFunction> fitnessFunctions) {
+        this.fitnessFunctions = fitnessFunctions;
+    }
+
+    public String generateAdaptativeChart(List<List<Double>> fitnessValuesByGeneration, String functionType) throws IOException {
+        FitnessFunction function = fitnessFunctions.get(functionType);
+        if (function == null) {
+            throw new IllegalArgumentException("Función desconocida para gráfica: " + functionType);
+        }
+
+        double optimalValue = function.getOptimalValue();
+        // Ajustamos el rango Y: 10% más que el óptimo para ver bien la línea
+        double yMax = optimalValue * 1.1;
+
+        // Creamos la serie del mejor fitness por generación
         XYSeries bestFitnessSeries = new XYSeries("Mejor Adaptativo por Generación");
 
-        // Recorremos cada generación
         for (int i = 0; i < fitnessValuesByGeneration.size(); i++) {
             List<Double> generationFitness = fitnessValuesByGeneration.get(i);
             if (generationFitness.isEmpty()) continue;
 
-            // Encontramos el MÁXIMO (mejor) valor adaptativo de esta generación
             double maxFitness = generationFitness.stream()
                     .mapToDouble(Double::doubleValue)
                     .max()
                     .orElse(0.0);
 
-            // Añadimos punto: (número de generación, mejor fitness)
             bestFitnessSeries.add(i + 1, maxFitness);
         }
 
@@ -42,7 +57,7 @@ public class ChartService {
         dataset.addSeries(bestFitnessSeries);
 
         JFreeChart chart = ChartFactory.createXYLineChart(
-                "Evolución del Mejor Valor Adaptativo",
+                "Evolución del Mejor Valor Adaptativo (" + function.getName() + ")",
                 "Generación",
                 "Valor Adaptativo (f(x))",
                 dataset,
@@ -52,22 +67,20 @@ public class ChartService {
 
         XYPlot plot = chart.getXYPlot();
         NumberAxis yAxis = (NumberAxis) plot.getRangeAxis();
-        // Ajustamos el rango Y: máximo esperado es 64 (en x=±3)
-        yAxis.setRange(0, 70); // Un poco más que 64 para ver bien
+        yAxis.setRange(0, yMax);
 
-        // Marcador en 64 (valor óptimo que buscamos)
-        plot.addRangeMarker(new ValueMarker(64, Color.RED, new BasicStroke(2.0f)));
+        // Línea del valor óptimo (dinámico)
+        plot.addRangeMarker(new ValueMarker(optimalValue, Color.RED, new BasicStroke(2.0f)));
 
         // Estilo de la línea
         plot.getRenderer().setSeriesPaint(0, Color.BLUE);
         plot.getRenderer().setSeriesStroke(0, new BasicStroke(2.5f));
 
-        // Fondo blanco y grid suave
+        // Fondo y grid
         plot.setBackgroundPaint(Color.WHITE);
         plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
         plot.setDomainGridlinePaint(Color.LIGHT_GRAY);
 
-        // Tamaño de imagen
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ChartUtils.writeChartAsPNG(outputStream, chart, 800, 600);
         byte[] chartBytes = outputStream.toByteArray();

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -42,11 +41,12 @@ public class BinaryFileController {
                                    @RequestParam double xmin,
                                    @RequestParam double xmax,
                                    @RequestParam int L,
+                                   @RequestParam(defaultValue = "function5") String functionType,
                                    @RequestParam(defaultValue = "roulette") String selectionType,
                                    @RequestParam(defaultValue = "single") String crossoverType,
                                    @RequestParam(defaultValue = "simple") String mutationType,
                                    @RequestParam(required = false, defaultValue = "4200") int populationSize,
-                                   @RequestParam(required = false, defaultValue = "30") int numGenerations,
+                                   @RequestParam(required = false, defaultValue = "3") int numGenerations,
                                    @RequestParam(required = false, defaultValue = "0.001") double mutationRate,
                                    @RequestParam(required = false, defaultValue = "0.8") double crossoverRate,
                                    Model model) {
@@ -83,6 +83,7 @@ public class BinaryFileController {
             List<List<Individual>> generations = geneticAlgorithmService.runEvolution(
                     binaryNumbers, // Puede ser null en modo aleatorio
                     xmin, xmax, L,
+                    functionType,
                     selectionType, crossoverType, mutationType,
                     populationSize, numGenerations, mutationRate, crossoverRate,
                     mode // "file" o "random"
@@ -94,7 +95,7 @@ public class BinaryFileController {
                             .collect(Collectors.toList()))
                     .collect(Collectors.toList());
 
-            String chartImage = chartService.generateAdaptativeChart(fitnessByGeneration);
+            String chartImage = chartService.generateAdaptativeChart(fitnessByGeneration, functionType);
 
             model.addAttribute("generations", generations);
             model.addAttribute("xmin", xmin);

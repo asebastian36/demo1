@@ -5,6 +5,7 @@ import com.example.demo.service.conversion.AdaptiveFunctionService;
 import com.example.demo.service.conversion.BinaryConverterService;
 import com.example.demo.service.conversion.RealConverterService;
 import com.example.demo.service.crossover.CrossoverService;
+import com.example.demo.service.function.FitnessFunction;
 import com.example.demo.service.mutation.MutationService;
 import com.example.demo.service.persistence.IndividualService;
 import com.example.demo.service.selection.SelectionStrategy;
@@ -57,6 +58,7 @@ public class GeneticAlgorithmService {
             double xmin,
             double xmax,
             int L,
+            String functionType,
             String selectionType,
             String crossoverType,
             String mutationType,
@@ -110,7 +112,7 @@ public class GeneticAlgorithmService {
             log.info("        🎯 GENERACIÓN {} de {}", gen + 1, numGenerations);
             log.info("════════════════════════════════════════════════");
 
-            List<Individual> generation = createOrderedGeneration(currentBinaries, xmin, xmax, L, gen);
+            List<Individual> generation = createOrderedGeneration(currentBinaries, xmin, xmax, L, gen, functionType);
             generations.add(generation);
 
             if (gen < numGenerations - 1) {
@@ -137,7 +139,7 @@ public class GeneticAlgorithmService {
 
                     String[] children;
                     if (Math.random() < crossoverRate) {
-                        children = crossoverService.crossoverWithLogging(bin1, bin2, crossoverType, i + 1, L, xmin, xmax);
+                        children = crossoverService.crossoverWithLogging(bin1, bin2, crossoverType, i + 1, L, xmin, xmax, functionType);
                         crossoverCount++;
                     } else {
                         children = new String[]{bin1, bin2};
@@ -146,7 +148,7 @@ public class GeneticAlgorithmService {
                     for (String childBinary : children) {
                         int decimal = binaryConverterService.convertBinaryToInt(childBinary);
                         double real = realConverterService.toRealSingle(decimal, xmin, xmax, L);
-                        double adaptative = adaptiveFunctionService.toAdaptiveSingle(real);
+                        double adaptative = adaptiveFunctionService.toAdaptiveSingle(real, functionType);
                         offspring.add(new Individual(childBinary, real, adaptative, gen + 1));
                     }
                 }
@@ -154,7 +156,7 @@ public class GeneticAlgorithmService {
                         String.format("%.1f", (double) crossoverCount / parentPairs.size() * 100));
 
                 log.info("→ MUTACIÓN ({}): Aplicando con tasa = {}%", mutationType, mutationRatePerBit * 100);
-                mutationService.applyToGenerationWithLogging(offspring, mutationRatePerBit, L, gen + 1, mutationType);
+                mutationService.applyToGenerationWithLogging(offspring, mutationRatePerBit, L, gen + 1, mutationType, functionType);
 
                 currentBinaries = offspring.stream().map(Individual::getBinary).collect(Collectors.toList());
             }
@@ -167,15 +169,15 @@ public class GeneticAlgorithmService {
         log.info("⏱️  Tiempo total de ejecución: {} minutos {} segundos",
                 duration.toMinutes(), duration.minusMinutes(duration.toMinutes()).getSeconds());
 
-        verifyConvergence(generations.get(generations.size() - 1));
+        verifyConvergence(generations.get(generations.size() - 1), functionType);
 
         return generations;
     }
 
-    private List<Individual> createOrderedGeneration(List<String> binaries, double xmin, double xmax, int L, int generationIndex) {
+    private List<Individual> createOrderedGeneration(List<String> binaries, double xmin, double xmax, int L, int generationIndex, String functionType) {
         List<Integer> decimals = binaryConverterService.convertBinaryListToIntegers(binaries);
         List<Double> reals = realConverterService.toReal(decimals, xmin, xmax, L);
-        List<Double> fitnessValues = adaptiveFunctionService.toAdaptive(reals);
+        List<Double> fitnessValues = adaptiveFunctionService.toAdaptive(reals, functionType);
 
         List<Individual> individuals = new ArrayList<>();
         for (int i = 0; i < binaries.size(); i++) {
@@ -186,7 +188,9 @@ public class GeneticAlgorithmService {
         return individuals;
     }
 
-    private void verifyConvergence(List<Individual> finalGeneration) {
+    private void verifyConvergence(List<Individual> finalGeneration, String functionType) {
+        FitnessFunction function = adaptiveFunctionService.getFunction(functionType);
+
         long countConverged = finalGeneration.stream()
                 .filter(ind -> Math.abs(Math.abs(ind.getReal()) - 3.0) < 0.1)
                 .count();

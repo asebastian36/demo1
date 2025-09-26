@@ -1,30 +1,43 @@
 package com.example.demo.service.conversion;
 
+import com.example.demo.service.function.FitnessFunction;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class AdaptiveFunctionService {
 
     private static final Logger log = LoggerFactory.getLogger(AdaptiveFunctionService.class);
+    private final Map<String, FitnessFunction> fitnessFunctions;
 
-    // Cambiado a f(x) = (x^2 - 1)^2
-    public List<Double> toAdaptive(List<Double> realValues) {
-        log.debug("Aplicando función adaptativa f(x) = (x² - 1)² a {} valores", realValues.size());
+    public AdaptiveFunctionService(Map<String, FitnessFunction> fitnessFunctions) {
+        this.fitnessFunctions = fitnessFunctions;
+    }
+
+    public List<Double> toAdaptive(List<Double> realValues, String functionType) {
+        FitnessFunction function = fitnessFunctions.get(functionType);
+        if (function == null) {
+            throw new IllegalArgumentException("Función desconocida: " + functionType);
+        }
+
+        log.debug("Aplicando función adaptativa: {} a {} valores", function.getName(), realValues.size());
         return realValues.stream()
-                .map(x -> {
-                    double result = Math.pow(x * x - 1, 2);
-                    log.trace("f({}) = {:.3f}", x, result);
-                    return result;
-                })
+                .map(function::evaluate)
                 .collect(Collectors.toList());
     }
 
-    public double toAdaptiveSingle(double x) {
-        double result = Math.pow(x * x - 1, 2);
-        log.trace("toAdaptiveSingle: f({}) = {:.3f}", x, result);
-        return result;
+    public double toAdaptiveSingle(double x, String functionType) {
+        FitnessFunction function = fitnessFunctions.get(functionType);
+        if (function == null) {
+            throw new IllegalArgumentException("Función desconocida: " + functionType);
+        }
+        return function.evaluate(x);
+    }
+
+    // Método para obtener la función (útil para convergencia)
+    public FitnessFunction getFunction(String functionType) {
+        return fitnessFunctions.get(functionType);
     }
 }
