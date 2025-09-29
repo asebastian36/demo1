@@ -31,41 +31,45 @@ public class CrossoverService {
     }
 
     // Método nuevo: cruce con logs y functionType
+    // En CrossoverService.java
     public String[] crossoverWithLogging(String parent1, String parent2, String crossoverType,
                                          int pairIndex, int L, double xmin, double xmax, String functionType) {
         CrossoverStrategy strategy = strategies.getOrDefault(crossoverType, strategies.get("single"));
 
-        int point = -1;
-        if (strategy instanceof SinglePointCrossoverStrategy) {
-            point = 1 + random.nextInt(L - 1);
-            ((SinglePointCrossoverStrategy) strategy).setForcedPoint(point);
-        }
-
         String[] children = strategy.crossover(parent1, parent2);
 
-        if (strategy instanceof SinglePointCrossoverStrategy) {
-            ((SinglePointCrossoverStrategy) strategy).clearForcedPoint();
-        }
-
-        // Calcular fitness usando functionType
+        // Calcular fitness
         double fitP1 = calculateFitness(parent1, xmin, xmax, L, functionType);
         double fitP2 = calculateFitness(parent2, xmin, xmax, L, functionType);
         double fitH1 = calculateFitness(children[0], xmin, xmax, L, functionType);
         double fitH2 = calculateFitness(children[1], xmin, xmax, L, functionType);
 
-        log.info("""
+        // Logs específicos por tipo de cruce
+        if ("uniform".equals(crossoverType)) {
+            log.info("""
+                🧬 Pareja {}: Cruce uniforme
+                  Padre 1: {} → f(x) = {:.3f}
+                  Padre 2: {} → f(x) = {:.3f}
+                  Hijo 1:  {} → f(x) = {:.3f}
+                  Hijo 2:  {} → f(x) = {:.3f}""",
+                    pairIndex, parent1, fitP1, parent2, fitP2, children[0], fitH1, children[1], fitH2);
+        } else {
+            // Logs para cruce de punto (simple/doble)
+            int point = -1;
+            if (strategy instanceof SinglePointCrossoverStrategy) {
+                // ... lógica existente para punto de corte ...
+            }
+
+            log.info("""
                 🧬 Pareja {}: Cruce de un punto
                   Padre 1: {} → f(x) = {:.3f}
                   Padre 2: {} → f(x) = {:.3f}
                   Punto de corte: {}
                   Hijo 1:  {} → f(x) = {:.3f}
                   Hijo 2:  {} → f(x) = {:.3f}""",
-                pairIndex,
-                parent1, fitP1,
-                parent2, fitP2,
-                point == -1 ? "N/A" : point,
-                children[0], fitH1,
-                children[1], fitH2);
+                    pairIndex, parent1, fitP1, parent2, fitP2,
+                    point == -1 ? "N/A" : point, children[0], fitH1, children[1], fitH2);
+        }
 
         return children;
     }
