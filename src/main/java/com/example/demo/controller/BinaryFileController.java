@@ -8,6 +8,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.servlet.http.HttpSession;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -46,9 +47,10 @@ public class BinaryFileController {
                                    @RequestParam(defaultValue = "single") String crossoverType,
                                    @RequestParam(defaultValue = "simple") String mutationType,
                                    @RequestParam(required = false, defaultValue = "4200") int populationSize,
-                                   @RequestParam(required = false, defaultValue = "3") int numGenerations,
+                                   @RequestParam(required = false, defaultValue = "30") int numGenerations,
                                    @RequestParam(required = false, defaultValue = "0.001") double mutationRate,
                                    @RequestParam(required = false, defaultValue = "0.8") double crossoverRate,
+                                   HttpSession session,
                                    Model model) {
         try {
             List<String> binaryNumbers = null;
@@ -75,18 +77,16 @@ public class BinaryFileController {
                     throw new IllegalArgumentException("El archivo no contiene números binarios");
                 }
 
-                // Normalizar binarios del archivo
                 binaryNumbers = binaryConverterService.normalizeAllBinaries(binaryNumbers, L);
             }
 
-            // Ejecutar algoritmo con el modo de población seleccionado
             List<List<Individual>> generations = geneticAlgorithmService.runEvolution(
-                    binaryNumbers, // Puede ser null en modo aleatorio
+                    binaryNumbers,
                     xmin, xmax, L,
                     functionType,
                     selectionType, crossoverType, mutationType,
                     populationSize, numGenerations, mutationRate, crossoverRate,
-                    mode // "file" o "random"
+                    mode
             );
 
             List<List<Double>> fitnessByGeneration = generations.stream()
@@ -97,14 +97,16 @@ public class BinaryFileController {
 
             String chartImage = chartService.generateAdaptativeChart(fitnessByGeneration, functionType);
 
-            model.addAttribute("generations", generations);
-            model.addAttribute("xmin", xmin);
-            model.addAttribute("xmax", xmax);
-            model.addAttribute("L", L);
-            model.addAttribute("binaryService", binaryConverterService);
-            model.addAttribute("chartImage", chartImage);
+            // Guardar en sesión para acceso posterior
+            session.setAttribute("generations", generations);
+            session.setAttribute("chartImage", chartImage);
+            session.setAttribute("xmin", xmin);
+            session.setAttribute("xmax", xmax);
+            session.setAttribute("L", L);
+            session.setAttribute("functionType", functionType);
 
-            return "results";
+            // Redirigir a la primera generación
+            return "redirect:/results?xmin=" + xmin + "&xmax=" + xmax + "&L=" + L + "&currentGeneration=1";
 
         } catch (IllegalArgumentException e) {
             model.addAttribute("error", "Error de validación: " + e.getMessage());

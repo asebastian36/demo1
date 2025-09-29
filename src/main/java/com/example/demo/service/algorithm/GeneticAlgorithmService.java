@@ -1,20 +1,17 @@
 package com.example.demo.service.algorithm;
 
 import com.example.demo.entities.Individual;
-import com.example.demo.service.conversion.AdaptiveFunctionService;
-import com.example.demo.service.conversion.BinaryConverterService;
-import com.example.demo.service.conversion.RealConverterService;
+import com.example.demo.service.conversion.*;
 import com.example.demo.service.crossover.CrossoverService;
 import com.example.demo.service.function.FitnessFunction;
 import com.example.demo.service.mutation.MutationService;
 import com.example.demo.service.persistence.IndividualService;
 import com.example.demo.service.selection.SelectionStrategy;
 import com.example.demo.service.population.PopulationSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.demo.service.selection.TournamentSelection;
+import org.slf4j.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -32,7 +29,7 @@ public class GeneticAlgorithmService {
     private final IndividualService individualService;
     private final RealConverterService realConverterService;
     private final Map<String, SelectionStrategy> selectionStrategies;
-    private final Map<String, PopulationSource> populationSources; // Nuevo
+    private final Map<String, PopulationSource> populationSources;
 
     public GeneticAlgorithmService(AdaptiveFunctionService adaptiveFunctionService,
                                    RealConverterService realConverterService,
@@ -41,7 +38,7 @@ public class GeneticAlgorithmService {
                                    BinaryConverterService binaryConverterService,
                                    IndividualService individualService,
                                    Map<String, SelectionStrategy> selectionStrategies,
-                                   Map<String, PopulationSource> populationSources) { // Nuevo parámetro
+                                   Map<String, PopulationSource> populationSources) {
         this.adaptiveFunctionService = adaptiveFunctionService;
         this.realConverterService = realConverterService;
         this.crossoverService = crossoverService;
@@ -49,12 +46,12 @@ public class GeneticAlgorithmService {
         this.binaryConverterService = binaryConverterService;
         this.individualService = individualService;
         this.selectionStrategies = selectionStrategies;
-        this.populationSources = populationSources; // Nueva asignación
+        this.populationSources = populationSources;
     }
 
     @Transactional
     public List<List<Individual>> runEvolution(
-            List<String> fileBinaries, // Binarios del archivo (null en modo aleatorio)
+            List<String> fileBinaries,
             double xmin,
             double xmax,
             int L,
@@ -66,12 +63,12 @@ public class GeneticAlgorithmService {
             int numGenerations,
             double mutationRatePerBit,
             double crossoverRate,
-            String populationSourceType) { // "file" o "random"
+            String populationSourceType) {
 
         Instant start = Instant.now();
 
-        log.info("🚀 INICIANDO ALGORITMO GENÉTICO PARA FUNCIÓN 5");
-        log.info("   Función: f(x) = (x² - 1)² → Buscando MÁXIMO en x = ±3 (f=64)");
+        log.info("🚀 INICIANDO ALGORITMO GENÉTICO");
+        log.info("   Función: {}", adaptiveFunctionService.getFunction(functionType).getName());
         log.info("   Modo de población: {}", populationSourceType);
         log.info("   Generaciones: {}", numGenerations);
         log.info("   Selección: {}", selectionType);
@@ -81,13 +78,12 @@ public class GeneticAlgorithmService {
         log.info("   Prob. Mutación: {}%", mutationRatePerBit * 100);
         log.info("   Rango: x ∈ [{}, {}]", xmin, xmax);
 
-        // 🔑 CONFIGURAR FUENTE DE POBLACIÓN
+        // CONFIGURAR FUENTE DE POBLACIÓN
         PopulationSource populationSource = populationSources.get(populationSourceType);
         if (populationSource == null) {
             throw new IllegalArgumentException("Fuente de población desconocida: " + populationSourceType);
         }
 
-        // Configurar datos específicos según el tipo
         if ("file".equals(populationSourceType)) {
             if (fileBinaries == null || fileBinaries.isEmpty()) {
                 throw new IllegalArgumentException("No se proporcionaron binarios para el modo archivo");
@@ -97,7 +93,6 @@ public class GeneticAlgorithmService {
             ((com.example.demo.service.population.RandomPopulationSource) populationSource).setPopulationSize(populationSize);
         }
 
-        // Generar población inicial
         List<String> currentBinaries = populationSource.generatePopulation(L);
         log.info("→ Población inicial generada ({}): {} individuos",
                 populationSource.getName(), currentBinaries.size());
@@ -116,16 +111,27 @@ public class GeneticAlgorithmService {
             generations.add(generation);
 
             if (gen < numGenerations - 1) {
-                // SELECCIÓN
+                // 🔑 CALCULAR TAMAÑO ACTUAL DE POBLACIÓN
+                int currentPopulationSize = currentBinaries.size();
+
+                // 🔑 CALCULAR NÚMERO DE PAREJAS (REDONDEO HACIA ARRIBA)
+                int numPairs = (currentPopulationSize + 1) / 2;
+
                 SelectionStrategy selection = selectionStrategies.get(selectionType);
                 if (selection == null) {
                     throw new IllegalArgumentException("Tipo de selección desconocido: " + selectionType);
                 }
-                log.info("→ SELECCIÓN: {}", selection.getName());
-                List<Individual[]> parentPairs = selection.selectPairs(generation, currentBinaries.size() / 2);
 
-                log.info("→ CRUCE: Generando {} hijos con cruce de un punto (probabilidad = {}%)",
-                        currentBinaries.size(), crossoverRate * 100);
+                // Configurar TournamentSelection si es necesario
+                if ("tournament".equals(selectionType) && selection instanceof TournamentSelection) {
+                    ((TournamentSelection) selection).configure(xmin, xmax, L, functionType);
+                }
+
+                log.info("→ SELECCIÓN: {}", selection.getName());
+                List<Individual[]> parentPairs = selection.selectPairs(generation, numPairs);
+
+                log.info("→ CRUCE: Generando hijos con cruce de un punto (probabilidad = {}%)",
+                        crossoverRate * 100);
                 List<Individual> offspring = new ArrayList<>();
                 int crossoverCount = 0;
 
@@ -158,7 +164,20 @@ public class GeneticAlgorithmService {
                 log.info("→ MUTACIÓN ({}): Aplicando con tasa = {}%", mutationType, mutationRatePerBit * 100);
                 mutationService.applyToGenerationWithLogging(offspring, mutationRatePerBit, L, gen + 1, mutationType, functionType);
 
+                // 🔑 ASEGURAR TAMAÑO CONSTANTE DE POBLACIÓN
+                if (offspring.size() > currentPopulationSize) {
+                    // Recortar al tamaño original
+                    offspring = new ArrayList<>(offspring.subList(0, currentPopulationSize));
+                } else if (offspring.size() < currentPopulationSize) {
+                    // Rellenar con copias del mejor individuo (por seguridad)
+                    Individual best = offspring.isEmpty() ? generation.get(0) : offspring.get(0);
+                    while (offspring.size() < currentPopulationSize) {
+                        offspring.add(new Individual(best.getBinary(), best.getReal(), best.getAdaptative(), gen + 1));
+                    }
+                }
+
                 currentBinaries = offspring.stream().map(Individual::getBinary).collect(Collectors.toList());
+                log.info("→ Población ajustada a {} individuos", currentBinaries.size());
             }
         }
 
@@ -190,21 +209,22 @@ public class GeneticAlgorithmService {
 
     private void verifyConvergence(List<Individual> finalGeneration, String functionType) {
         FitnessFunction function = adaptiveFunctionService.getFunction(functionType);
+        double targetX = function.getTargetX();
 
         long countConverged = finalGeneration.stream()
-                .filter(ind -> Math.abs(Math.abs(ind.getReal()) - 3.0) < 0.1)
+                .filter(ind -> Math.abs(Math.abs(ind.getReal()) - targetX) < 0.1)
                 .count();
 
         double percentage = (double) countConverged / finalGeneration.size() * 100;
         log.info(" ");
         log.info("📊 RESULTADO FINAL DE CONVERGENCIA:");
-        log.info("   → Individuos en x ≈ ±3: {} de {}", countConverged, finalGeneration.size());
+        log.info("   → Individuos en x ≈ ±{}: {} de {}", targetX, countConverged, finalGeneration.size());
         log.info("   → Porcentaje: %.2f%%", percentage);
 
         if (percentage >= 80) {
-            log.info("🎉 ✅ ¡CONVERGENCIA EXITOSA! (≥80% en x ≈ ±3)");
+            log.info("🎉 ✅ ¡CONVERGENCIA EXITOSA! (≥80% en x ≈ ±{})", targetX);
         } else {
-            log.warn("⚠️ ❌ Convergencia insuficiente (<80% en x ≈ ±3). Considera ajustar parámetros.");
+            log.warn("⚠️ ❌ Convergencia insuficiente (<80% en x ≈ ±{})", targetX);
         }
     }
 }
