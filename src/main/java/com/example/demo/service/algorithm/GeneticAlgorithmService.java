@@ -101,6 +101,11 @@ public class GeneticAlgorithmService {
 
         List<List<Individual>> generations = new ArrayList<>();
 
+        // Variables para métricas de comparación
+        int generation90Percent = -1;
+        double optimalValue = adaptiveFunctionService.getFunction(functionType).getOptimalValue();
+        double threshold90 = optimalValue * 0.9;
+
         for (int gen = 0; gen < numGenerations; gen++) {
             log.info(" ");
             log.info("════════════════════════════════════════════════");
@@ -110,11 +115,16 @@ public class GeneticAlgorithmService {
             List<Individual> generation = createOrderedGeneration(currentBinaries, xmin, xmax, L, gen, functionType);
             generations.add(generation);
 
-            if (gen < numGenerations - 1) {
-                // 🔑 CALCULAR TAMAÑO ACTUAL DE POBLACIÓN
-                int currentPopulationSize = currentBinaries.size();
+            // 🔑 VERIFICAR CONVERGENCIA AL 90% (métrica principal)
+            if (generation90Percent == -1 && !generation.isEmpty()) {
+                double bestFitness = generation.get(0).getAdaptative();
+                if (bestFitness >= threshold90) {
+                    generation90Percent = gen + 1; // Generación 1-indexed
+                }
+            }
 
-                // 🔑 CALCULAR NÚMERO DE PAREJAS (REDONDEO HACIA ARRIBA)
+            if (gen < numGenerations - 1) {
+                int currentPopulationSize = currentBinaries.size();
                 int numPairs = (currentPopulationSize + 1) / 2;
 
                 SelectionStrategy selection = selectionStrategies.get(selectionType);
@@ -122,7 +132,6 @@ public class GeneticAlgorithmService {
                     throw new IllegalArgumentException("Tipo de selección desconocido: " + selectionType);
                 }
 
-                // Configurar TournamentSelection si es necesario
                 if ("tournament".equals(selectionType) && selection instanceof TournamentSelection) {
                     ((TournamentSelection) selection).configure(xmin, xmax, L, functionType);
                 }
@@ -164,12 +173,9 @@ public class GeneticAlgorithmService {
                 log.info("→ MUTACIÓN ({}): Aplicando con tasa = {}%", mutationType, mutationRatePerBit * 100);
                 mutationService.applyToGenerationWithLogging(offspring, mutationRatePerBit, L, gen + 1, mutationType, functionType);
 
-                // 🔑 ASEGURAR TAMAÑO CONSTANTE DE POBLACIÓN
                 if (offspring.size() > currentPopulationSize) {
-                    // Recortar al tamaño original
                     offspring = new ArrayList<>(offspring.subList(0, currentPopulationSize));
                 } else if (offspring.size() < currentPopulationSize) {
-                    // Rellenar con copias del mejor individuo (por seguridad)
                     Individual best = offspring.isEmpty() ? generation.get(0) : offspring.get(0);
                     while (offspring.size() < currentPopulationSize) {
                         offspring.add(new Individual(best.getBinary(), best.getReal(), best.getAdaptative(), gen + 1));
@@ -187,6 +193,16 @@ public class GeneticAlgorithmService {
         log.info("✅✅✅ ALGORITMO FINALIZADO ✅✅✅");
         log.info("⏱️  Tiempo total de ejecución: {} minutos {} segundos",
                 duration.toMinutes(), duration.minusMinutes(duration.toMinutes()).getSeconds());
+
+        // 🔑 MOSTRAR MÉTRICA DE COMPARACIÓN
+        if (generation90Percent != -1) {
+            log.info("📊 MÉTRICA DE COMPARACIÓN:");
+            log.info("   → Convergencia al 90% del óptimo en generación: {}", generation90Percent);
+            log.info("   → Umbral del 90%: {:.2f} (óptimo: {:.2f})", threshold90, optimalValue);
+        } else {
+            log.info("📊 MÉTRICA DE COMPARACIÓN:");
+            log.info("   → No se alcanzó el 90% del óptimo en {} generaciones", numGenerations);
+        }
 
         verifyConvergence(generations.get(generations.size() - 1), functionType);
 
