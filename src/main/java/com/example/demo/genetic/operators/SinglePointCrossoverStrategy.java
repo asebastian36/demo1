@@ -7,7 +7,7 @@ import java.util.Random;
 public class SinglePointCrossoverStrategy implements CrossoverStrategy {
 
     private final Random random = new Random();
-    private ThreadLocal<Integer> forcedPoint = new ThreadLocal<>();
+    private final ThreadLocal<Integer> forcedPoint = new ThreadLocal<>();
 
     public void setForcedPoint(int point) {
         forcedPoint.set(point);

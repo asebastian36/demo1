@@ -24,9 +24,8 @@ public class BinaryConverterService {
             throw new IllegalArgumentException("Cadena no binaria: " + clean);
         }
         try {
-            int value = Integer.parseInt(clean, 2);
             // ❌ ELIMINADO: log.debug("Binario {} → Decimal {}", clean, value);
-            return value;
+            return Integer.parseInt(clean, 2);
         } catch (NumberFormatException e) {
             log.error("Número binario demasiado grande: {}", clean);
             throw new IllegalArgumentException("Número binario demasiado grande: " + clean);
@@ -36,15 +35,13 @@ public class BinaryConverterService {
     public String normalizeBinary(String binary, int length) {
         String clean = binary.trim();
         if (clean.length() > length) {
-            String result = clean.substring(clean.length() - length);
             // ❌ Opcional: puedes eliminar este log también si no lo necesitas
             // log.trace("Binario recortado {} → {}", clean, result);
-            return result;
+            return clean.substring(clean.length() - length);
         } else if (clean.length() < length) {
-            String result = String.format("%" + length + "s", clean).replace(' ', '0');
             // ❌ Opcional: puedes eliminar este log también
             // log.trace("Binario rellenado {} → {}", clean, result);
-            return result;
+            return String.format("%" + length + "s", clean).replace(' ', '0');
         }
         return clean;
     }

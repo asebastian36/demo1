@@ -1,5 +1,8 @@
 HELP.md
 
+# Directorio de compilación de Maven/Gradle
+/target/
+
 ### STS ###
 .apt_generated
 .classpath
@@ -8,6 +11,7 @@ HELP.md
 .settings
 .springBeans
 .sts4-cache
+# .target es para archivos. Si es la carpeta, usa /target/ (ver arriba)
 .target
 
 ### IntelliJ IDEA ###

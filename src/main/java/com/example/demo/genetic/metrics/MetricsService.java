@@ -24,7 +24,7 @@ public class MetricsService {
         for (int gen = 0; gen < generations.size(); gen++) {
             List<Individual> generation = generations.get(gen);
             if (!generation.isEmpty()) {
-                double bestFitness = generation.get(0).getAdaptative();
+                double bestFitness = generation.getFirst().getAdaptative();
                 if (bestFitness >= threshold90) {
                     return gen + 1; // 1-indexed
                 }
@@ -65,11 +65,11 @@ public class MetricsService {
      * @return diversidad genética (0.0 a 0.5)
      */
     public double calculateGeneticDiversity(List<Individual> generation) {
-        if (generation == null || generation.isEmpty() || generation.get(0).getBinary() == null) {
+        if (generation == null || generation.isEmpty() || generation.getFirst().getBinary() == null) {
             return 0.0;
         }
 
-        int L = generation.get(0).getBinary().length();
+        int L = generation.getFirst().getBinary().length();
         int populationSize = generation.size();
 
         if (populationSize <= 1) {

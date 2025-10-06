@@ -1,8 +1,6 @@
 package com.example.demo.genetic.operators;
 
-import com.example.demo.conversion.AdaptiveFunctionService;
-import com.example.demo.conversion.BinaryConverterService;
-import com.example.demo.conversion.RealConverterService;
+import com.example.demo.conversion.*;
 import com.example.demo.entities.Individual;
 import org.springframework.stereotype.Component;
 import java.util.*;

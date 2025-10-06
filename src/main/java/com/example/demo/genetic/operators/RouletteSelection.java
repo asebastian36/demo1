@@ -65,7 +65,7 @@ public class RouletteSelection implements SelectionStrategy {
         }
 
         // Por seguridad, devuelve el último
-        Individual last = population.get(population.size() - 1);
+        Individual last = population.getLast();
         log.warn("⚠️ Selección por defecto (último): {}", last.getBinary());
         return last;
     }

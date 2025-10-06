@@ -1,7 +1,5 @@
 package com.example.demo.dto;
 
-import com.example.demo.dto.AlgorithmParameters;
-import com.example.demo.dto.GreaterThanXmin;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 

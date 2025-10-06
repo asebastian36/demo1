@@ -1,17 +1,11 @@
 package com.example.demo.visualization;
 
 import com.example.demo.genetic.function.FitnessFunction;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartUtils;
-import org.jfree.chart.JFreeChart;
+import org.jfree.chart.*;
 import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.ValueMarker;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.chart.plot.*;
+import org.jfree.data.xy.*;
 import org.springframework.stereotype.Service;
-
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

@@ -1,10 +1,7 @@
 package com.example.demo.genetic.operators;
 
-import com.example.demo.conversion.AdaptiveFunctionService;
-import com.example.demo.conversion.BinaryConverterService;
-import com.example.demo.conversion.RealConverterService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.demo.conversion.*;
+import org.slf4j.*;
 import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.*;
@@ -18,7 +15,6 @@ public class CrossoverService {
     private final RealConverterService realConverterService;
     private final AdaptiveFunctionService adaptiveFunctionService;
     private final Map<String, CrossoverStrategy> strategies = new HashMap<>();
-    private final Random random = new Random();
 
     public CrossoverService(SinglePointCrossoverStrategy singleStrategy,
                             DoublePointCrossoverStrategy doubleStrategy,
