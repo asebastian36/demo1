@@ -106,6 +106,10 @@ public class GeneticAlgorithmService {
         double optimalValue = adaptiveFunctionService.getFunction(functionType).getOptimalValue();
         double threshold90 = optimalValue * 0.9;
 
+        // Variables para diversidad genética
+        double totalDiversity = 0.0;
+        int diversitySampleCount = 0;
+
         for (int gen = 0; gen < numGenerations; gen++) {
             log.info(" ");
             log.info("════════════════════════════════════════════════");
@@ -115,11 +119,23 @@ public class GeneticAlgorithmService {
             List<Individual> generation = createOrderedGeneration(currentBinaries, xmin, xmax, L, gen, functionType);
             generations.add(generation);
 
-            // 🔑 VERIFICAR CONVERGENCIA AL 90% (métrica principal)
+            // CALCULAR DIVERSIDAD GENÉTICA DE ESTA GENERACIÓN
+            if (!generation.isEmpty()) {
+                double diversity = calculateGeneticDiversity(generation);
+                totalDiversity += diversity;
+                diversitySampleCount++;
+
+                // Mostrar diversidad cada 100 generaciones o en las últimas
+                if (gen % 100 == 0 || gen == numGenerations - 1 || gen < 10) {
+                    log.info("🧬 Diversidad genética: %.4f", diversity);
+                }
+            }
+
+            // Verificar convergencia al 90%
             if (generation90Percent == -1 && !generation.isEmpty()) {
                 double bestFitness = generation.get(0).getAdaptative();
                 if (bestFitness >= threshold90) {
-                    generation90Percent = gen + 1; // Generación 1-indexed
+                    generation90Percent = gen + 1;
                 }
             }
 
@@ -139,7 +155,7 @@ public class GeneticAlgorithmService {
                 log.info("→ SELECCIÓN: {}", selection.getName());
                 List<Individual[]> parentPairs = selection.selectPairs(generation, numPairs);
 
-                log.info("→ CRUCE: Generando hijos con cruce de un punto (probabilidad = {}%)",
+                log.info("→ CRUCE: Generando hijos con cruce de un punto (probabilidad = %.1f%%)",
                         crossoverRate * 100);
                 List<Individual> offspring = new ArrayList<>();
                 int crossoverCount = 0;
@@ -167,10 +183,10 @@ public class GeneticAlgorithmService {
                         offspring.add(new Individual(childBinary, real, adaptative, gen + 1));
                     }
                 }
-                log.info("→ ✅ Cruce completado: {} parejas cruzaron ({}%)", crossoverCount,
-                        String.format("%.1f", (double) crossoverCount / parentPairs.size() * 100));
+                log.info("→ ✅ Cruce completado: %d parejas cruzaron (%.1f%%)", crossoverCount,
+                        (double) crossoverCount / parentPairs.size() * 100);
 
-                log.info("→ MUTACIÓN ({}): Aplicando con tasa = {}%", mutationType, mutationRatePerBit * 100);
+                log.info("→ MUTACIÓN (%s): Aplicando con tasa = %.3f%%", mutationType, mutationRatePerBit * 100);
                 mutationService.applyToGenerationWithLogging(offspring, mutationRatePerBit, L, gen + 1, mutationType, functionType);
 
                 if (offspring.size() > currentPopulationSize) {
@@ -183,7 +199,7 @@ public class GeneticAlgorithmService {
                 }
 
                 currentBinaries = offspring.stream().map(Individual::getBinary).collect(Collectors.toList());
-                log.info("→ Población ajustada a {} individuos", currentBinaries.size());
+                log.info("→ Población ajustada a %d individuos", currentBinaries.size());
             }
         }
 
@@ -191,22 +207,63 @@ public class GeneticAlgorithmService {
         Duration duration = Duration.between(start, end);
         log.info(" ");
         log.info("✅✅✅ ALGORITMO FINALIZADO ✅✅✅");
-        log.info("⏱️  Tiempo total de ejecución: {} minutos {} segundos",
+        log.info("⏱️  Tiempo total de ejecución: %d minutos %d segundos",
                 duration.toMinutes(), duration.minusMinutes(duration.toMinutes()).getSeconds());
 
-        // 🔑 MOSTRAR MÉTRICA DE COMPARACIÓN
+        // ✅ CORREGIDO: Métricas de comparación
         if (generation90Percent != -1) {
             log.info("📊 MÉTRICA DE COMPARACIÓN:");
-            log.info("   → Convergencia al 90% del óptimo en generación: {}", generation90Percent);
-            log.info("   → Umbral del 90%: {:.2f} (óptimo: {:.2f})", threshold90, optimalValue);
+            log.info("   → Convergencia al 90%% del óptimo en generación: %d", generation90Percent);
+            log.info("   → Umbral del 90%%: %.2f (óptimo: %.2f)", threshold90, optimalValue);
         } else {
             log.info("📊 MÉTRICA DE COMPARACIÓN:");
-            log.info("   → No se alcanzó el 90% del óptimo en {} generaciones", numGenerations);
+            log.info("   → No se alcanzó el 90%% del óptimo en %d generaciones", numGenerations);
+        }
+
+        // ✅ CORREGIDO: Diversidad genética promedio
+        if (diversitySampleCount > 0) {
+            double avgDiversity = totalDiversity / diversitySampleCount;
+            log.info("🧬 DIVERSIDAD GENÉTICA PROMEDIO: %.4f", avgDiversity);
+            log.info("   → Rango: 0.0 (mínima) a 0.5 (máxima)");
         }
 
         verifyConvergence(generations.get(generations.size() - 1), functionType);
 
         return generations;
+    }
+
+    // Método para calcular diversidad genética
+    private double calculateGeneticDiversity(List<Individual> generation) {
+        if (generation.isEmpty() || generation.get(0).getBinary() == null) {
+            return 0.0;
+        }
+
+        int L = generation.get(0).getBinary().length();
+        int populationSize = generation.size();
+
+        if (populationSize <= 1) {
+            return 0.0;
+        }
+
+        double totalDiversity = 0.0;
+
+        // Para cada posición de bit
+        for (int bitPos = 0; bitPos < L; bitPos++) {
+            int onesCount = 0;
+
+            // Contar cuántos individuos tienen '1' en esta posición
+            for (Individual individual : generation) {
+                if (individual.getBinary().charAt(bitPos) == '1') {
+                    onesCount++;
+                }
+            }
+
+            double p = (double) onesCount / populationSize; // Proporción de 1s
+            double diversityAtPosition = 2.0 * p * (1.0 - p); // Máximo = 0.5 cuando p=0.5
+            totalDiversity += diversityAtPosition;
+        }
+
+        return totalDiversity / L; // Promedio por posición
     }
 
     private List<Individual> createOrderedGeneration(List<String> binaries, double xmin, double xmax, int L, int generationIndex, String functionType) {
@@ -223,6 +280,7 @@ public class GeneticAlgorithmService {
         return individuals;
     }
 
+    // ✅ CORREGIDO: Verificación de convergencia
     private void verifyConvergence(List<Individual> finalGeneration, String functionType) {
         FitnessFunction function = adaptiveFunctionService.getFunction(functionType);
         double targetX = function.getTargetX();
@@ -234,13 +292,13 @@ public class GeneticAlgorithmService {
         double percentage = (double) countConverged / finalGeneration.size() * 100;
         log.info(" ");
         log.info("📊 RESULTADO FINAL DE CONVERGENCIA:");
-        log.info("   → Individuos en x ≈ ±{}: {} de {}", targetX, countConverged, finalGeneration.size());
+        log.info("   → Individuos en x ≈ ±%.1f: %d de %d", targetX, countConverged, finalGeneration.size());
         log.info("   → Porcentaje: %.2f%%", percentage);
 
         if (percentage >= 80) {
-            log.info("🎉 ✅ ¡CONVERGENCIA EXITOSA! (≥80% en x ≈ ±{})", targetX);
+            log.info("🎉 ✅ ¡CONVERGENCIA EXITOSA! (≥80%% en x ≈ ±%.1f)", targetX);
         } else {
-            log.warn("⚠️ ❌ Convergencia insuficiente (<80% en x ≈ ±{})", targetX);
+            log.warn("⚠️ ❌ Convergencia insuficiente (<80%% en x ≈ ±%.1f)", targetX);
         }
     }
 }
