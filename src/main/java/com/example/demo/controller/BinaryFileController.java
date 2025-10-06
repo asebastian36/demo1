@@ -11,8 +11,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -79,16 +78,24 @@ public class BinaryFileController {
                 binaryNumbers = binaryConverterService.normalizeAllBinaries(binaryNumbers, params.getL());
             }
 
+            // ✅ EJECUTAR ALGORITMO CON LOS PARÁMETROS VALIDADOS
             List<List<Individual>> generations = geneticAlgorithmService.runEvolution(
                     binaryNumbers,
-                    params.getXmin(), params.getXmax(), params.getL(),
+                    params.getXmin(),
+                    params.getXmax(),
+                    params.getL(),
                     params.getFunctionType(),
-                    params.getSelectionType(), params.getCrossoverType(), params.getMutationType(),
-                    params.getPopulationSize(), params.getNumGenerations(),
-                    params.getMutationRate(), params.getCrossoverRate(),
+                    params.getSelectionType(),
+                    params.getCrossoverType(),
+                    params.getMutationType(),
+                    params.getPopulationSize(),
+                    params.getNumGenerations(),
+                    params.getMutationRate(),
+                    params.getCrossoverRate(),
                     params.getMode()
             );
 
+            // ✅ GENERAR GRÁFICA
             List<List<Double>> fitnessByGeneration = generations.stream()
                     .map(gen -> gen.stream()
                             .map(Individual::getAdaptative)
@@ -97,14 +104,14 @@ public class BinaryFileController {
 
             String chartImage = chartService.generateAdaptativeChart(fitnessByGeneration, params.getFunctionType());
 
-            // Guardar en sesión
-            model.addAttribute("currentGeneration", 1);
+            // ✅ AGREGAR ATRIBUTOS AL MODELO (incluyendo currentGeneration para la vista)
             model.addAttribute("generations", generations);
             model.addAttribute("chartImage", chartImage);
             model.addAttribute("xmin", params.getXmin());
             model.addAttribute("xmax", params.getXmax());
             model.addAttribute("L", params.getL());
             model.addAttribute("binaryService", binaryConverterService);
+            model.addAttribute("currentGeneration", 1);
 
             return "results";
 

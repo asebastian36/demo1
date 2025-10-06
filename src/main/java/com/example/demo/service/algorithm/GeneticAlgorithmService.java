@@ -9,11 +9,11 @@ import com.example.demo.service.persistence.IndividualService;
 import com.example.demo.service.selection.SelectionStrategy;
 import com.example.demo.service.population.PopulationSource;
 import com.example.demo.service.selection.TournamentSelection;
+import com.example.demo.service.metrics.MetricsService;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.Duration;
-import java.time.Instant;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,6 +30,7 @@ public class GeneticAlgorithmService {
     private final RealConverterService realConverterService;
     private final Map<String, SelectionStrategy> selectionStrategies;
     private final Map<String, PopulationSource> populationSources;
+    private final MetricsService metricsService; // Nueva dependencia
 
     public GeneticAlgorithmService(AdaptiveFunctionService adaptiveFunctionService,
                                    RealConverterService realConverterService,
@@ -38,7 +39,8 @@ public class GeneticAlgorithmService {
                                    BinaryConverterService binaryConverterService,
                                    IndividualService individualService,
                                    Map<String, SelectionStrategy> selectionStrategies,
-                                   Map<String, PopulationSource> populationSources) {
+                                   Map<String, PopulationSource> populationSources,
+                                   MetricsService metricsService) { // Inyectar MetricsService
         this.adaptiveFunctionService = adaptiveFunctionService;
         this.realConverterService = realConverterService;
         this.crossoverService = crossoverService;
@@ -47,6 +49,7 @@ public class GeneticAlgorithmService {
         this.individualService = individualService;
         this.selectionStrategies = selectionStrategies;
         this.populationSources = populationSources;
+        this.metricsService = metricsService;
     }
 
     @Transactional
@@ -101,15 +104,6 @@ public class GeneticAlgorithmService {
 
         List<List<Individual>> generations = new ArrayList<>();
 
-        // Variables para métricas de comparación
-        int generation90Percent = -1;
-        double optimalValue = adaptiveFunctionService.getFunction(functionType).getOptimalValue();
-        double threshold90 = optimalValue * 0.9;
-
-        // Variables para diversidad genética
-        double totalDiversity = 0.0;
-        int diversitySampleCount = 0;
-
         for (int gen = 0; gen < numGenerations; gen++) {
             log.info(" ");
             log.info("════════════════════════════════════════════════");
@@ -118,26 +112,6 @@ public class GeneticAlgorithmService {
 
             List<Individual> generation = createOrderedGeneration(currentBinaries, xmin, xmax, L, gen, functionType);
             generations.add(generation);
-
-            // CALCULAR DIVERSIDAD GENÉTICA DE ESTA GENERACIÓN
-            if (!generation.isEmpty()) {
-                double diversity = calculateGeneticDiversity(generation);
-                totalDiversity += diversity;
-                diversitySampleCount++;
-
-                // Mostrar diversidad cada 100 generaciones o en las últimas
-                if (gen % 100 == 0 || gen == numGenerations - 1 || gen < 10) {
-                    log.info("🧬 Diversidad genética: %.4f", diversity);
-                }
-            }
-
-            // Verificar convergencia al 90%
-            if (generation90Percent == -1 && !generation.isEmpty()) {
-                double bestFitness = generation.get(0).getAdaptative();
-                if (bestFitness >= threshold90) {
-                    generation90Percent = gen + 1;
-                }
-            }
 
             if (gen < numGenerations - 1) {
                 int currentPopulationSize = currentBinaries.size();
@@ -210,60 +184,18 @@ public class GeneticAlgorithmService {
         log.info("⏱️  Tiempo total de ejecución: %d minutos %d segundos",
                 duration.toMinutes(), duration.minusMinutes(duration.toMinutes()).getSeconds());
 
-        // ✅ CORREGIDO: Métricas de comparación
-        if (generation90Percent != -1) {
-            log.info("📊 MÉTRICA DE COMPARACIÓN:");
-            log.info("   → Convergencia al 90%% del óptimo en generación: %d", generation90Percent);
-            log.info("   → Umbral del 90%%: %.2f (óptimo: %.2f)", threshold90, optimalValue);
-        } else {
-            log.info("📊 MÉTRICA DE COMPARACIÓN:");
-            log.info("   → No se alcanzó el 90%% del óptimo en %d generaciones", numGenerations);
-        }
+        // ✅ USAR SERVICIO DE MÉTRICAS
+        FitnessFunction function = adaptiveFunctionService.getFunction(functionType);
+        double optimalValue = function.getOptimalValue();
 
-        // ✅ CORREGIDO: Diversidad genética promedio
-        if (diversitySampleCount > 0) {
-            double avgDiversity = totalDiversity / diversitySampleCount;
-            log.info("🧬 DIVERSIDAD GENÉTICA PROMEDIO: %.4f", avgDiversity);
-            log.info("   → Rango: 0.0 (mínima) a 0.5 (máxima)");
-        }
+        int generation90Percent = metricsService.findGeneration90Percent(generations, optimalValue);
+        double avgDiversity = metricsService.calculateAverageDiversity(generations);
+        double threshold90 = optimalValue * 0.9;
 
-        verifyConvergence(generations.get(generations.size() - 1), functionType);
+        metricsService.logComparisonMetrics(generation90Percent, numGenerations, threshold90, optimalValue, avgDiversity);
+        metricsService.logConvergenceResults(generations.get(generations.size() - 1), function);
 
         return generations;
-    }
-
-    // Método para calcular diversidad genética
-    private double calculateGeneticDiversity(List<Individual> generation) {
-        if (generation.isEmpty() || generation.get(0).getBinary() == null) {
-            return 0.0;
-        }
-
-        int L = generation.get(0).getBinary().length();
-        int populationSize = generation.size();
-
-        if (populationSize <= 1) {
-            return 0.0;
-        }
-
-        double totalDiversity = 0.0;
-
-        // Para cada posición de bit
-        for (int bitPos = 0; bitPos < L; bitPos++) {
-            int onesCount = 0;
-
-            // Contar cuántos individuos tienen '1' en esta posición
-            for (Individual individual : generation) {
-                if (individual.getBinary().charAt(bitPos) == '1') {
-                    onesCount++;
-                }
-            }
-
-            double p = (double) onesCount / populationSize; // Proporción de 1s
-            double diversityAtPosition = 2.0 * p * (1.0 - p); // Máximo = 0.5 cuando p=0.5
-            totalDiversity += diversityAtPosition;
-        }
-
-        return totalDiversity / L; // Promedio por posición
     }
 
     private List<Individual> createOrderedGeneration(List<String> binaries, double xmin, double xmax, int L, int generationIndex, String functionType) {
@@ -278,27 +210,5 @@ public class GeneticAlgorithmService {
 
         individuals.sort(Comparator.comparingDouble(Individual::getAdaptative).reversed());
         return individuals;
-    }
-
-    // ✅ CORREGIDO: Verificación de convergencia
-    private void verifyConvergence(List<Individual> finalGeneration, String functionType) {
-        FitnessFunction function = adaptiveFunctionService.getFunction(functionType);
-        double targetX = function.getTargetX();
-
-        long countConverged = finalGeneration.stream()
-                .filter(ind -> Math.abs(Math.abs(ind.getReal()) - targetX) < 0.1)
-                .count();
-
-        double percentage = (double) countConverged / finalGeneration.size() * 100;
-        log.info(" ");
-        log.info("📊 RESULTADO FINAL DE CONVERGENCIA:");
-        log.info("   → Individuos en x ≈ ±%.1f: %d de %d", targetX, countConverged, finalGeneration.size());
-        log.info("   → Porcentaje: %.2f%%", percentage);
-
-        if (percentage >= 80) {
-            log.info("🎉 ✅ ¡CONVERGENCIA EXITOSA! (≥80%% en x ≈ ±%.1f)", targetX);
-        } else {
-            log.warn("⚠️ ❌ Convergencia insuficiente (<80%% en x ≈ ±%.1f)", targetX);
-        }
     }
 }
