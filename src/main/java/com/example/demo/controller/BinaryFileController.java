@@ -2,9 +2,9 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.AlgorithmParameters;
 import com.example.demo.entities.Individual;
-import com.example.demo.service.algorithm.GeneticAlgorithmService;
-import com.example.demo.service.conversion.BinaryConverterService;
-import com.example.demo.service.visualization.ChartService;
+import com.example.demo.genetic.algorithm.GeneticAlgorithmService;
+import com.example.demo.conversion.BinaryConverterService;
+import com.example.demo.visualization.ChartService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
