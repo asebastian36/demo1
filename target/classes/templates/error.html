@@ -3,18 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Error</title>
+    <title>Error - Algoritmo Genético</title>
     <link rel="stylesheet" th:href="@{/css/styles.css}">
 </head>
 <body>
 <div class="container">
-    <h1>Error</h1>
+    <h1 class="error-title">❌ Error en la ejecución</h1>
 
-    <div class="error-message" style="background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <strong>Error:</strong> <span th:text="${error}"></span>
+    <div class="error-container">
+        <div class="error-message" th:text="${error}"></div>
+
+        <div class="error-hint">
+            <h3>💡 Consejos para resolver el error:</h3>
+            <ul>
+                <li>Verifica que todos los campos obligatorios estén completos</li>
+                <li>Asegúrate de que el archivo .txt contenga solo números binarios (0 y 1)</li>
+                <li>Confirma que xmin sea menor que xmax</li>
+                <li>Revisa que los parámetros estén dentro de los rangos permitidos</li>
+            </ul>
+        </div>
     </div>
 
-    <a href="/" class="back-button">Volver al inicio</a>
+    <a href="/" class="back-button">🏠 Volver al inicio</a>
 </div>
 </body>
 </html>

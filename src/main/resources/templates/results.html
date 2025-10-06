@@ -3,125 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resultados de Conversión</title>
+    <title>Resultados del Algoritmo Genético</title>
     <link rel="stylesheet" th:href="@{/css/styles.css}">
-    <style>
-        .navigation-controls {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-            margin: 20px 0;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .nav-section {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            min-width: 200px;
-        }
-
-        .nav-button {
-            background-color: #3498db;
-            color: white;
-            padding: 10px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .nav-button:hover {
-            background-color: #2980b9;
-        }
-
-        .nav-button:disabled,
-        .nav-button.disabled {
-            background-color: #bdc3c7;
-            color: #7f8c8d;
-            cursor: not-allowed;
-            text-decoration: none;
-        }
-
-        .current-generation {
-            font-weight: bold;
-            color: #2c3e50;
-            font-size: 16px;
-        }
-
-        .jump-to-generation {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-        }
-
-        .jump-to-generation input {
-            width: 80px;
-            padding: 8px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            text-align: center;
-        }
-
-        .jump-to-generation button {
-            background-color: #27ae60;
-            color: white;
-            padding: 8px 12px;
-            font-size: 14px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .jump-to-generation button:hover {
-            background-color: #219a52;
-        }
-
-        @media (max-width: 768px) {
-            .navigation-controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .nav-section {
-                justify-content: center;
-            }
-        }
-    </style>
+    <script th:src="@{/js/app.js}" defer></script>
 </head>
 <body>
 <div class="container">
-    <h1>Resultados de Conversión</h1>
+    <div class="results-header">
+        <h1>📊 Resultados del Algoritmo Genético</h1>
+        <p>Función: <span th:text="${#objects.nullSafe(functionType, 'N/A')}"></span></p>
+    </div>
 
-    <div class="parametros">
-        <h3>Parámetros usados:</h3>
+    <div class="generation-info">
+        <h3>📋 Parámetros utilizados</h3>
         <p>
-            <strong>xmin:</strong> <span th:text="${xmin}"></span>,
-            <strong>xmax:</strong> <span th:text="${xmax}"></span>,
-            <strong>L:</strong> <span th:text="${L}"></span>,
+            <strong>Rango:</strong> [<span th:text="${xmin}"></span>, <span th:text="${xmax}"></span>] |
+            <strong>Precisión:</strong> <span th:text="${L}"></span> bits |
             <strong>Total generaciones:</strong> <span th:text="${#lists.size(generations)}"></span>
         </p>
     </div>
 
     <!-- Gráfica -->
     <div class="chart-container" style="margin: 30px 0;">
-        <h3>Evolución de Valores Adaptativos</h3>
+        <h3>📈 Evolución del Mejor Valor Adaptativo</h3>
         <img th:src="${chartImage}" alt="Gráfica de valores adaptativos"
-             style="width: 100%; max-width: 800px; height: auto; border: 1px solid #ddd;">
+             style="width: 100%; max-width: 800px; height: auto; border: 1px solid #ddd; border-radius: 4px;">
     </div>
 
     <!-- Controles de navegación -->
@@ -130,12 +36,12 @@
             <!-- Botón Anterior -->
             <th:block th:if="${currentGeneration > 1}">
                 <a class="nav-button"
-                   th:href="@{/results(xmin=${xmin}, xmax=${xmax}, L=${L}, currentGeneration=${currentGeneration - 1})}">
-                    ← Anterior
+                   th:href="@{/results(currentGeneration=${currentGeneration - 1})}">
+                    ← Generación Anterior
                 </a>
             </th:block>
             <th:block th:if="${currentGeneration <= 1}">
-                <span class="nav-button disabled">← Anterior</span>
+                <span class="nav-button disabled">← Generación Anterior</span>
             </th:block>
         </div>
 
@@ -147,10 +53,7 @@
         <div class="nav-section">
             <div class="jump-to-generation">
                 <form th:action="@{/results}" method="get">
-                    <input type="hidden" name="xmin" th:value="${xmin}">
-                    <input type="hidden" name="xmax" th:value="${xmax}">
-                    <input type="hidden" name="L" th:value="${L}">
-                    <label for="genInput" style="margin: 0;">Ir a:</label>
+                    <label for="genInput" style="margin: 0; font-weight: normal;">Ir a:</label>
                     <input type="number" id="genInput" name="currentGeneration"
                            th:min="1" th:max="${#lists.size(generations)}"
                            th:value="${currentGeneration}" required>
@@ -163,19 +66,22 @@
             <!-- Botón Siguiente -->
             <th:block th:if="${currentGeneration < #lists.size(generations)}">
                 <a class="nav-button"
-                   th:href="@{/results(xmin=${xmin}, xmax=${xmax}, L=${L}, currentGeneration=${currentGeneration + 1})}">
-                    Siguiente →
+                   th:href="@{/results(currentGeneration=${currentGeneration + 1})}">
+                    Siguiente Generación →
                 </a>
             </th:block>
             <th:block th:if="${currentGeneration >= #lists.size(generations)}">
-                <span class="nav-button disabled">Siguiente →</span>
+                <span class="nav-button disabled">Siguiente Generación →</span>
             </th:block>
         </div>
     </div>
 
     <!-- Contenido de la generación actual -->
     <th:block th:if="${generations != null and #lists.size(generations) >= currentGeneration}">
-        <h2 th:text="'Generación ' + ${currentGeneration}"></h2>
+        <div class="generation-info">
+            <h2 th:text="'Generación ' + ${currentGeneration}"></h2>
+            <p><strong>Total individuos:</strong> <span th:text="${#lists.size(generations[currentGeneration - 1])}"></span></p>
+        </div>
 
         <div class="table-container">
             <table>
@@ -204,12 +110,15 @@
     </th:block>
 
     <th:block th:if="${generations == null or #lists.size(generations) < currentGeneration}">
-        <div style="color: red; font-weight: bold; padding: 20px; background: #ffeaea; border-radius: 5px;">
-            ❌ No hay datos disponibles para la Generación <span th:text="${currentGeneration}"></span>
+        <div style="color: red; font-weight: bold; padding: 20px; background: #ffeaea; border-radius: 5px; margin: 20px 0;">
+            <h3>❌ Error</h3>
+            <p>No hay datos disponibles para la Generación <span th:text="${currentGeneration}"></span></p>
         </div>
     </th:block>
 
-    <a href="/" class="back-button">Volver al inicio</a>
+    <div style="margin-top: 20px;">
+        <a href="/" class="back-button">🏠 Volver al inicio</a>
+    </div>
 </div>
 </body>
 </html>
