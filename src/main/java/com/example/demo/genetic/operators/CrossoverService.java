@@ -18,6 +18,7 @@ public class CrossoverService {
 
     public CrossoverService(SinglePointCrossoverStrategy singleStrategy,
                             DoublePointCrossoverStrategy doubleStrategy,
+                            UniformCrossoverStrategy uniformStrategy, // Añadir esta línea
                             BinaryConverterService binaryConverterService,
                             RealConverterService realConverterService,
                             AdaptiveFunctionService adaptiveFunctionService) {
@@ -26,15 +27,15 @@ public class CrossoverService {
         this.adaptiveFunctionService = adaptiveFunctionService;
         strategies.put("single", singleStrategy);
         strategies.put("double", doubleStrategy);
+        strategies.put("uniform", uniformStrategy); // Añadir esta línea
     }
 
-    // Método nuevo: cruce con logs y functionType
-    // En CrossoverService.java
-    public String[] crossoverWithLogging(String parent1, String parent2, String crossoverType,
-                                         int pairIndex, int L, double xmin, double xmax, String functionType) {
+    public CrossoverResult crossoverWithLogging(String parent1, String parent2, String crossoverType,
+                                                int pairIndex, int L, double xmin, double xmax, String functionType) {
         CrossoverStrategy strategy = strategies.getOrDefault(crossoverType, strategies.get("single"));
 
-        String[] children = strategy.crossover(parent1, parent2);
+        CrossoverResult result = strategy.crossover(parent1, parent2);
+        String[] children = result.getChildren();
 
         // Calcular fitness
         double fitP1 = calculateFitness(parent1, xmin, xmax, L, functionType);
@@ -42,42 +43,42 @@ public class CrossoverService {
         double fitH1 = calculateFitness(children[0], xmin, xmax, L, functionType);
         double fitH2 = calculateFitness(children[1], xmin, xmax, L, functionType);
 
+        // Formatear valores de fitness para el log
+        String fmtFitP1 = String.format("%.3f", fitP1);
+        String fmtFitP2 = String.format("%.3f", fitP2);
+        String fmtFitH1 = String.format("%.3f", fitH1);
+        String fmtFitH2 = String.format("%.3f", fitH2);
+
         // Logs específicos por tipo de cruce
         if ("uniform".equals(crossoverType)) {
             log.info("""
                 🧬 Pareja {}: Cruce uniforme
-                  Padre 1: {} → f(x) = {:.3f}
-                  Padre 2: {} → f(x) = {:.3f}
-                  Hijo 1:  {} → f(x) = {:.3f}
-                  Hijo 2:  {} → f(x) = {:.3f}""",
-                    pairIndex, parent1, fitP1, parent2, fitP2, children[0], fitH1, children[1], fitH2);
+                  Padre 1: {} → f(x) = {}
+                  Padre 2: {} → f(x) = {}
+                  Hijo 1:  {} → f(x) = {}
+                  Hijo 2:  {} → f(x) = {}""",
+                    pairIndex, parent1, fmtFitP1, parent2, fmtFitP2, children[0], fmtFitH1, children[1], fmtFitH2);
         } else {
-            // Logs para cruce de punto (simple/doble)
-            int point = -1;
-            if (strategy instanceof SinglePointCrossoverStrategy) {
-                // ... lógica existente para punto de corte ...
-            }
-
+            String pointStr = result.getCutPointsString();
             log.info("""
                 🧬 Pareja {}: Cruce de un punto
-                  Padre 1: {} → f(x) = {:.3f}
-                  Padre 2: {} → f(x) = {:.3f}
+                  Padre 1: {} → f(x) = {}
+                  Padre 2: {} → f(x) = {}
                   Punto de corte: {}
-                  Hijo 1:  {} → f(x) = {:.3f}
-                  Hijo 2:  {} → f(x) = {:.3f}""",
-                    pairIndex, parent1, fitP1, parent2, fitP2,
-                    point == -1 ? "N/A" : point, children[0], fitH1, children[1], fitH2);
+                  Hijo 1:  {} → f(x) = {}
+                  Hijo 2:  {} → f(x) = {}""",
+                    pairIndex, parent1, fmtFitP1, parent2, fmtFitP2,
+                    pointStr, children[0], fmtFitH1, children[1], fmtFitH2);
         }
 
-        return children;
+        return result;
     }
 
-    // Método corregido: ahora requiere functionType
     private double calculateFitness(String binary, double xmin, double xmax, int L, String functionType) {
         try {
             int decimal = binaryConverterService.convertBinaryToInt(binary);
             double real = realConverterService.toRealSingle(decimal, xmin, xmax, L);
-            return adaptiveFunctionService.toAdaptiveSingle(real, functionType); // ✅ Ahora con functionType
+            return adaptiveFunctionService.toAdaptiveSingle(real, functionType);
         } catch (Exception e) {
             log.error("Error calculando fitness para binario {}: {}", binary, e.getMessage());
             return Double.NEGATIVE_INFINITY;

@@ -50,7 +50,7 @@ public class TournamentSelection implements SelectionStrategy {
 
             if (isOddPopulation) {
                 // Generar individuo aleatorio REAL con cálculos correctos
-                Individual randomIndividual = generateRealRandomIndividual(population.get(0).getGeneration());
+                Individual randomIndividual = generateRealRandomIndividual(population.getFirst().getGeneration());
                 selectionPool.add(randomIndividual);
             }
 
@@ -98,8 +98,8 @@ public class TournamentSelection implements SelectionStrategy {
         }
 
         return tournament.stream()
-                .max((i1, i2) -> Double.compare(i1.getAdaptative(), i2.getAdaptative()))
-                .orElse(selectionPool.get(0));
+                .max(Comparator.comparingDouble(Individual::getAdaptative))
+                .orElse(selectionPool.getFirst());
     }
 
     @Override

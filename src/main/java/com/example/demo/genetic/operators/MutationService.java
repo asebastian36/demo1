@@ -72,8 +72,8 @@ public class MutationService {
                 generation.set(i, mutated);
                 mutatedIndividuals++;
 
-                log.debug("  ✅ Individuo {} mutado: {} → {} (f(x) = {:.3f})",
-                        i + 1, originalBinary, mutatedBinary, adaptative);
+                log.debug("  ✅ Individuo {} mutado: {} → {} (f(x) = {})",
+                        i + 1, originalBinary, mutatedBinary, String.format("%.3f", adaptative));
             }
         }
 

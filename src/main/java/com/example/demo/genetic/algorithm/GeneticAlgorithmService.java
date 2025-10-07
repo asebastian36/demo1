@@ -1,16 +1,16 @@
 package com.example.demo.genetic.algorithm;
 
-import com.example.demo.conversion.*;
 import com.example.demo.entities.Individual;
-import com.example.demo.genetic.operators.*;
+import com.example.demo.conversion.*;
 import com.example.demo.genetic.function.FitnessFunction;
-import com.example.demo.persistence.IndividualService;
-import com.example.demo.genetic.population.PopulationSource;
+import com.example.demo.genetic.operators.*;
 import com.example.demo.genetic.metrics.MetricsService;
+import com.example.demo.genetic.population.PopulationSource;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.*;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,30 +23,27 @@ public class GeneticAlgorithmService {
     private final CrossoverService crossoverService;
     private final MutationService mutationService;
     private final BinaryConverterService binaryConverterService;
-    private final IndividualService individualService;
     private final RealConverterService realConverterService;
     private final Map<String, SelectionStrategy> selectionStrategies;
     private final Map<String, PopulationSource> populationSources;
-    private final MetricsService metricsService; // Nueva dependencia
+    private final MetricsService metricsService;
 
     public GeneticAlgorithmService(AdaptiveFunctionService adaptiveFunctionService,
                                    RealConverterService realConverterService,
                                    CrossoverService crossoverService,
                                    MutationService mutationService,
                                    BinaryConverterService binaryConverterService,
-                                   IndividualService individualService,
+                                   MetricsService metricsService,
                                    Map<String, SelectionStrategy> selectionStrategies,
-                                   Map<String, PopulationSource> populationSources,
-                                   MetricsService metricsService) { // Inyectar MetricsService
+                                   Map<String, PopulationSource> populationSources) {
         this.adaptiveFunctionService = adaptiveFunctionService;
         this.realConverterService = realConverterService;
         this.crossoverService = crossoverService;
         this.mutationService = mutationService;
         this.binaryConverterService = binaryConverterService;
-        this.individualService = individualService;
+        this.metricsService = metricsService;
         this.selectionStrategies = selectionStrategies;
         this.populationSources = populationSources;
-        this.metricsService = metricsService;
     }
 
     @Transactional
@@ -74,8 +71,10 @@ public class GeneticAlgorithmService {
         log.info("   Selección: {}", selectionType);
         log.info("   Cruce: {}", crossoverType);
         log.info("   Mutación: {}", mutationType);
-        log.info("   Prob. Cruce: {}%", crossoverRate * 100);
-        log.info("   Prob. Mutación: {}%", mutationRatePerBit * 100);
+        // LOG CORREGIDO
+        log.info("   Prob. Cruce: {}%", String.format("%.1f", crossoverRate * 100));
+        // LOG CORREGIDO
+        log.info("   Prob. Mutación: {}%", String.format("%.3f", mutationRatePerBit * 100));
         log.info("   Rango: x ∈ [{}, {}]", xmin, xmax);
 
         // CONFIGURAR FUENTE DE POBLACIÓN
@@ -126,8 +125,10 @@ public class GeneticAlgorithmService {
                 log.info("→ SELECCIÓN: {}", selection.getName());
                 List<Individual[]> parentPairs = selection.selectPairs(generation, numPairs);
 
-                log.info("→ CRUCE: Generando hijos con cruce de un punto (probabilidad = %.1f%%)",
-                        crossoverRate * 100);
+                // LOG CORREGIDO
+                log.info("→ CRUCE: Generando hijos con cruce de un punto (probabilidad = {}%)",
+                        String.format("%.1f", crossoverRate * 100));
+
                 List<Individual> offspring = new ArrayList<>();
                 int crossoverCount = 0;
 
@@ -139,13 +140,17 @@ public class GeneticAlgorithmService {
                     String bin1 = binaryConverterService.normalizeBinary(p1.getBinary(), L);
                     String bin2 = binaryConverterService.normalizeBinary(p2.getBinary(), L);
 
-                    String[] children;
+                    CrossoverResult result;
                     if (Math.random() < crossoverRate) {
-                        children = crossoverService.crossoverWithLogging(bin1, bin2, crossoverType, i + 1, L, xmin, xmax, functionType);
+                        result = crossoverService.crossoverWithLogging(
+                                bin1, bin2, crossoverType, i + 1, L, xmin, xmax, functionType);
                         crossoverCount++;
                     } else {
-                        children = new String[]{bin1, bin2};
+                        // Sin cruce: hijos son copias de padres
+                        result = new CrossoverResult(new String[]{bin1, bin2});
                     }
+
+                    String[] children = result.getChildren();
 
                     for (String childBinary : children) {
                         int decimal = binaryConverterService.convertBinaryToInt(childBinary);
@@ -154,23 +159,27 @@ public class GeneticAlgorithmService {
                         offspring.add(new Individual(childBinary, real, adaptative, gen + 1));
                     }
                 }
-                log.info("→ ✅ Cruce completado: %d parejas cruzaron (%.1f%%)", crossoverCount,
-                        (double) crossoverCount / parentPairs.size() * 100);
+                // LOG CORREGIDO
+                log.info("→ ✅ Cruce completado: {} parejas cruzaron ({}%)", crossoverCount,
+                        String.format("%.1f", (double) crossoverCount / parentPairs.size() * 100));
 
-                log.info("→ MUTACIÓN (%s): Aplicando con tasa = %.3f%%", mutationType, mutationRatePerBit * 100);
+                // LOG CORREGIDO
+                log.info("→ MUTACIÓN ({}): Aplicando con tasa = {}%", mutationType, String.format("%.3f", mutationRatePerBit * 100));
                 mutationService.applyToGenerationWithLogging(offspring, mutationRatePerBit, L, gen + 1, mutationType, functionType);
 
                 if (offspring.size() > currentPopulationSize) {
                     offspring = new ArrayList<>(offspring.subList(0, currentPopulationSize));
                 } else if (offspring.size() < currentPopulationSize) {
-                    Individual best = offspring.isEmpty() ? generation.get(0) : offspring.get(0);
+                    // Usando getFirst() y getLast() se asume una versión de Java que lo soporta (Java 21+)
+                    Individual best = offspring.isEmpty() ? generation.getFirst() : offspring.getFirst();
                     while (offspring.size() < currentPopulationSize) {
                         offspring.add(new Individual(best.getBinary(), best.getReal(), best.getAdaptative(), gen + 1));
                     }
                 }
 
                 currentBinaries = offspring.stream().map(Individual::getBinary).collect(Collectors.toList());
-                log.info("→ Población ajustada a %d individuos", currentBinaries.size());
+                // LOG CORREGIDO
+                log.info("→ Población ajustada a {} individuos", currentBinaries.size());
             }
         }
 
@@ -178,10 +187,11 @@ public class GeneticAlgorithmService {
         Duration duration = Duration.between(start, end);
         log.info(" ");
         log.info("✅✅✅ ALGORITMO FINALIZADO ✅✅✅");
-        log.info("⏱️  Tiempo total de ejecución: %d minutos %d segundos",
+        // LOG CORREGIDO
+        log.info("⏱️  Tiempo total de ejecución: {} minutos {} segundos",
                 duration.toMinutes(), duration.minusMinutes(duration.toMinutes()).getSeconds());
 
-        // ✅ USAR SERVICIO DE MÉTRICAS
+        // USAR SERVICIO DE MÉTRICAS
         FitnessFunction function = adaptiveFunctionService.getFunction(functionType);
         double optimalValue = function.getOptimalValue();
 
@@ -190,7 +200,8 @@ public class GeneticAlgorithmService {
         double threshold90 = optimalValue * 0.9;
 
         metricsService.logComparisonMetrics(generation90Percent, numGenerations, threshold90, optimalValue, avgDiversity);
-        metricsService.logConvergenceResults(generations.get(generations.size() - 1), function);
+        // Usando getLast() (Java 21+)
+        metricsService.logConvergenceResults(generations.getLast(), function);
 
         return generations;
     }

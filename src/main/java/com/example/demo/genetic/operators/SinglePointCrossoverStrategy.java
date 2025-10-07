@@ -3,11 +3,11 @@ package com.example.demo.genetic.operators;
 import org.springframework.stereotype.Component;
 import java.util.Random;
 
-@Component
+@Component("single")
 public class SinglePointCrossoverStrategy implements CrossoverStrategy {
 
     private final Random random = new Random();
-    private final ThreadLocal<Integer> forcedPoint = new ThreadLocal<>();
+    private ThreadLocal<Integer> forcedPoint = new ThreadLocal<>();
 
     public void setForcedPoint(int point) {
         forcedPoint.set(point);
@@ -18,7 +18,7 @@ public class SinglePointCrossoverStrategy implements CrossoverStrategy {
     }
 
     @Override
-    public String[] crossover(String parent1, String parent2) {
+    public CrossoverResult crossover(String parent1, String parent2) {
         if (parent1.length() != parent2.length()) {
             throw new IllegalArgumentException("Longitudes diferentes: " + parent1 + ", " + parent2);
         }
@@ -29,6 +29,6 @@ public class SinglePointCrossoverStrategy implements CrossoverStrategy {
         String child1 = parent1.substring(0, point) + parent2.substring(point);
         String child2 = parent2.substring(0, point) + parent1.substring(point);
 
-        return new String[]{child1, child2};
+        return new CrossoverResult(new String[]{child1, child2}, point);
     }
 }

@@ -24,6 +24,8 @@ public class MetricsService {
         for (int gen = 0; gen < generations.size(); gen++) {
             List<Individual> generation = generations.get(gen);
             if (!generation.isEmpty()) {
+                // Se usa getFirst() que requiere Java 21+ o se asume que generation[0] es el mejor,
+                // lo cual es cierto por el ordenamiento en GeneticAlgorithmService.
                 double bestFitness = generation.getFirst().getAdaptative();
                 if (bestFitness >= threshold90) {
                     return gen + 1; // 1-indexed
@@ -111,15 +113,17 @@ public class MetricsService {
                 .count();
 
         double percentage = (double) countConverged / finalGeneration.size() * 100;
-        log.info(" ");
+
+        // Logs corregidos usando {} y String.format para el formato decimal
+        log.info("");
         log.info("📊 RESULTADO FINAL DE CONVERGENCIA:");
-        log.info("   → Individuos en x ≈ ±%.1f: %d de %d", targetX, countConverged, finalGeneration.size());
-        log.info("   → Porcentaje: %.2f%%", percentage);
+        log.info("   → Individuos en x ≈ ±{}: {} de {}", String.format("%.1f", targetX), countConverged, finalGeneration.size());
+        log.info("   → Porcentaje: {}%", String.format("%.2f", percentage));
 
         if (percentage >= 80) {
-            log.info("🎉 ✅ ¡CONVERGENCIA EXITOSA! (≥80%% en x ≈ ±%.1f)", targetX);
+            log.info("🎉 ✅ ¡CONVERGENCIA EXITOSA! (≥80%% en x ≈ ±{})", String.format("%.1f", targetX));
         } else {
-            log.warn("⚠️ ❌ Convergencia insuficiente (<80%% en x ≈ ±%.1f)", targetX);
+            log.warn("⚠️ ❌ Convergencia insuficiente (<80%% en x ≈ ±{})", String.format("%.1f", targetX));
         }
     }
 
@@ -134,17 +138,19 @@ public class MetricsService {
      */
     public void logComparisonMetrics(int generation90Percent, int numGenerations,
                                      double threshold90, double optimalValue, double avgDiversity) {
+
+        // Logs corregidos usando {} y String.format para el formato decimal
         if (generation90Percent != -1) {
             log.info("📊 MÉTRICA DE COMPARACIÓN:");
-            log.info("   → Convergencia al 90%% del óptimo en generación: %d", generation90Percent);
-            log.info("   → Umbral del 90%%: %.2f (óptimo: %.2f)", threshold90, optimalValue);
+            log.info("   → Convergencia al 90%% del óptimo en generación: {}", generation90Percent);
+            log.info("   → Umbral del 90%%: {} (óptimo: {})", String.format("%.2f", threshold90), String.format("%.2f", optimalValue));
         } else {
             log.info("📊 MÉTRICA DE COMPARACIÓN:");
-            log.info("   → No se alcanzó el 90%% del óptimo en %d generaciones", numGenerations);
+            log.info("   → No se alcanzó el 90%% del óptimo en {} generaciones", numGenerations);
         }
 
         if (avgDiversity > 0) {
-            log.info("🧬 DIVERSIDAD GENÉTICA PROMEDIO: %.4f", avgDiversity);
+            log.info("🧬 DIVERSIDAD GENÉTICA PROMEDIO: {}", String.format("%.4f", avgDiversity));
             log.info("   → Rango: 0.0 (mínima) a 0.5 (máxima)");
         }
     }

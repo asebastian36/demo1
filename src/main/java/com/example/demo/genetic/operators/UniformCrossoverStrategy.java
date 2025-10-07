@@ -9,7 +9,7 @@ public class UniformCrossoverStrategy implements CrossoverStrategy {
     private final Random random = new Random();
 
     @Override
-    public String[] crossover(String parent1, String parent2) {
+    public CrossoverResult crossover(String parent1, String parent2) {
         if (parent1.length() != parent2.length()) {
             throw new IllegalArgumentException("Longitudes diferentes: " + parent1 + ", " + parent2);
         }
@@ -18,7 +18,6 @@ public class UniformCrossoverStrategy implements CrossoverStrategy {
         StringBuilder child1 = new StringBuilder(L);
         StringBuilder child2 = new StringBuilder(L);
 
-        // Generar hijo 1: cada bit viene de padre1 o padre2 con 50% probabilidad
         for (int i = 0; i < L; i++) {
             if (random.nextBoolean()) {
                 child1.append(parent1.charAt(i));
@@ -29,6 +28,6 @@ public class UniformCrossoverStrategy implements CrossoverStrategy {
             }
         }
 
-        return new String[]{child1.toString(), child2.toString()};
+        return new CrossoverResult(new String[]{child1.toString(), child2.toString()});
     }
 }
