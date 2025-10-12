@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procesando Algoritmo Genético</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <style>
+        .loading-container {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            font-size: 18px;
+            font-weight: 500;
+            color: #2c3e50;
+            margin: 20px 0;
+        }
+
+        .progress-info {
+            background: #e8f4fc;
+            padding: 15px;
+            border-radius: 6px;
+            display: inline-block;
+            margin: 20px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <h1>🔬 Procesando Algoritmo Genético</h1>
+
+        <div class="progress-info">
+            <div class="status-message" id="statusMessage">Iniciando ejecución...</div>
+            <div id="progressText" class="hidden">Generación <span id="currentGen">0</span> de <span id="totalGen">0</span></div>
+        </div>
+
+        <p>Por favor espere mientras se ejecuta el algoritmo. Este proceso puede tardar varios minutos.</p>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const sessionId = /*[[${sessionId}]]*/ 'default';
+    const statusMessage = document.getElementById('statusMessage');
+    const progressText = document.getElementById('progressText');
+    const currentGenSpan = document.getElementById('currentGen');
+    const totalGenSpan = document.getElementById('totalGen');
+
+    function checkStatus() {
+        fetch(`/api/execution-status?sessionId=${sessionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.completed) {
+                    // Redirigir a resultados
+                    window.location.href = '/results?currentGeneration=1';
+                } else {
+                    // Mostrar progreso
+                    statusMessage.textContent = 'Ejecutando algoritmo genético...';
+                    progressText.classList.remove('hidden');
+                    currentGenSpan.textContent = data.currentGeneration;
+                    totalGenSpan.textContent = data.totalGenerations;
+
+                    // Continuar polling
+                    setTimeout(checkStatus, 1000);
+                }
+            })
+            .catch(error => {
+                console.error('Error checking status:', error);
+                // En caso de error, intentar redirigir después de un tiempo
+                setTimeout(() => {
+                    window.location.href = '/results?currentGeneration=1';
+                }, 5000);
+            });
+    }
+
+    // Iniciar polling
+    setTimeout(checkStatus, 1000);
+</script>
+</body>
+</html>
