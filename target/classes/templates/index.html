@@ -51,6 +51,12 @@
             </div>
 
             <div class="param-group">
+                <label class="param-label" for="numGenerations">Número de generaciones:</label>
+                <input type="number" id="numGenerations" name="numGenerations" value="1000" required class="form-control">
+                <small class="form-text text-muted">Rango recomendado: 900-1400</small>
+            </div>
+
+            <div class="param-group">
                 <label class="param-label" for="functionType">Función objetivo:</label>
                 <select id="functionType" name="functionType" class="form-control">
                     <option value="function5">Función 5: f(x) = (x² - 1)²</option>
@@ -85,6 +91,7 @@
                 <select id="mutationType" name="mutationType" class="form-control">
                     <option value="simple">Mutación simple (bit flip)</option>
                     <option value="inversive">Mutación inversiva</option>
+                    <option value="swap">Mutación por intercambio</option>
                 </select>
             </div>
         </div>
@@ -95,14 +102,8 @@
 
             <div class="param-group">
                 <label class="param-label" for="populationSize">Tamaño de población:</label>
-                <input type="number" id="populationSize" name="populationSize" min="10" value="4200" required class="form-control">
+                <input type="number" id="populationSize" name="populationSize" value="4200" required class="form-control">
                 <small class="form-text text-muted">Recomendado: 4200 (según enunciado)</small>
-            </div>
-
-            <div class="param-group">
-                <label class="param-label" for="numGenerations">Número de generaciones:</label>
-                <input type="number" id="numGenerations" name="numGenerations" min="10" value="1000" required class="form-control">
-                <small class="form-text text-muted">Rango recomendado: 900-1400</small>
             </div>
 
             <div class="param-group">

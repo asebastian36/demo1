@@ -39,7 +39,7 @@ public class AlgorithmParameters {
     private String mutationType = "simple";
 
     @NotNull(message = "El tamaño de población es requerido")
-    @Min(value = 10, message = "El tamaño de población debe ser al menos 10")
+    @Min(value = 3, message = "El tamaño de población debe ser al menos 3")
     @Max(value = 10000, message = "El tamaño de población no puede exceder 10000")
     private Integer populationSize = 4200;
 

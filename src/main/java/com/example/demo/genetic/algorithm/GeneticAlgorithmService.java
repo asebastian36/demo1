@@ -9,8 +9,7 @@ import com.example.demo.genetic.population.PopulationSource;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.Duration;
-import java.time.Instant;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -18,6 +17,7 @@ import java.util.stream.Collectors;
 public class GeneticAlgorithmService {
 
     private static final Logger log = LoggerFactory.getLogger(GeneticAlgorithmService.class);
+    private static final double CONVERGENCE_THRESHOLD = 0.8; // 80% de convergencia
 
     private final AdaptiveFunctionService adaptiveFunctionService;
     private final CrossoverService crossoverService;
@@ -57,17 +57,19 @@ public class GeneticAlgorithmService {
             String crossoverType,
             String mutationType,
             int populationSize,
-            int numGenerations,
+            int maxGenerations, // Renombrado para claridad
             double mutationRatePerBit,
             double crossoverRate,
             String populationSourceType) {
 
         Instant start = Instant.now();
 
+        int convergencePercentage = (int)(CONVERGENCE_THRESHOLD * 100);
+
         log.info("🚀 INICIANDO ALGORITMO GENÉTICO");
         log.info("   Función: {}", adaptiveFunctionService.getFunction(functionType).getName());
         log.info("   Modo de población: {}", populationSourceType);
-        log.info("   Generaciones: {}", numGenerations);
+        log.info("   Máximo de generaciones: {}", maxGenerations);
         log.info("   Selección: {}", selectionType);
         log.info("   Cruce: {}", crossoverType);
         log.info("   Mutación: {}", mutationType);
@@ -76,6 +78,9 @@ public class GeneticAlgorithmService {
         // LOG CORREGIDO
         log.info("   Prob. Mutación: {}%", String.format("%.3f", mutationRatePerBit * 100));
         log.info("   Rango: x ∈ [{}, {}]", xmin, xmax);
+        // LOG CORREGIDO
+        log.info("   Condición de paro: ≥{}% de convergencia o {} generaciones",
+                convergencePercentage, maxGenerations);
 
         // CONFIGURAR FUENTE DE POBLACIÓN
         PopulationSource populationSource = populationSources.get(populationSourceType);
@@ -99,17 +104,30 @@ public class GeneticAlgorithmService {
         mutationService.setBounds(xmin, xmax);
 
         List<List<Individual>> generations = new ArrayList<>();
+        boolean convergenceAchieved = false;
+        int actualGenerations = 0;
 
-        for (int gen = 0; gen < numGenerations; gen++) {
+        for (int gen = 0; gen < maxGenerations; gen++) {
+            actualGenerations = gen + 1;
+
             log.info(" ");
             log.info("════════════════════════════════════════════════");
-            log.info("        🎯 GENERACIÓN {} de {}", gen + 1, numGenerations);
+            log.info("        🎯 GENERACIÓN {} de {}", actualGenerations, maxGenerations);
             log.info("════════════════════════════════════════════════");
 
             List<Individual> generation = createOrderedGeneration(currentBinaries, xmin, xmax, L, gen, functionType);
             generations.add(generation);
 
-            if (gen < numGenerations - 1) {
+            // 🔑 VERIFICAR CONVERGENCIA DESPUÉS DE CADA GENERACIÓN
+            if (checkConvergence(generation, functionType)) {
+                // LOG CORREGIDO
+                log.info("🎉 ✅ ¡CONVERGENCIA DEL {}% ALCANZADA EN GENERACIÓN {}!",
+                        convergencePercentage, actualGenerations);
+                convergenceAchieved = true;
+                break; // Detener inmediatamente
+            }
+
+            if (gen < maxGenerations - 1) {
                 int currentPopulationSize = currentBinaries.size();
                 int numPairs = (currentPopulationSize + 1) / 2;
 
@@ -146,7 +164,6 @@ public class GeneticAlgorithmService {
                                 bin1, bin2, crossoverType, i + 1, L, xmin, xmax, functionType);
                         crossoverCount++;
                     } else {
-                        // Sin cruce: hijos son copias de padres
                         result = new CrossoverResult(new String[]{bin1, bin2});
                     }
 
@@ -160,8 +177,9 @@ public class GeneticAlgorithmService {
                     }
                 }
                 // LOG CORREGIDO
+                double crossoverPercentage = (double) crossoverCount / parentPairs.size() * 100;
                 log.info("→ ✅ Cruce completado: {} parejas cruzaron ({}%)", crossoverCount,
-                        String.format("%.1f", (double) crossoverCount / parentPairs.size() * 100));
+                        String.format("%.1f", crossoverPercentage));
 
                 // LOG CORREGIDO
                 log.info("→ MUTACIÓN ({}): Aplicando con tasa = {}%", mutationType, String.format("%.3f", mutationRatePerBit * 100));
@@ -170,8 +188,8 @@ public class GeneticAlgorithmService {
                 if (offspring.size() > currentPopulationSize) {
                     offspring = new ArrayList<>(offspring.subList(0, currentPopulationSize));
                 } else if (offspring.size() < currentPopulationSize) {
-                    // Usando getFirst() y getLast() se asume una versión de Java que lo soporta (Java 21+)
-                    Individual best = offspring.isEmpty() ? generation.getFirst() : offspring.getFirst();
+                    // Usando get(0) como fallback seguro si no se soporta getFirst()
+                    Individual best = offspring.isEmpty() ? generation.get(0) : offspring.get(0);
                     while (offspring.size() < currentPopulationSize) {
                         offspring.add(new Individual(best.getBinary(), best.getReal(), best.getAdaptative(), gen + 1));
                     }
@@ -187,6 +205,13 @@ public class GeneticAlgorithmService {
         Duration duration = Duration.between(start, end);
         log.info(" ");
         log.info("✅✅✅ ALGORITMO FINALIZADO ✅✅✅");
+
+        if (convergenceAchieved) {
+            log.info("🏁 Detenido por convergencia en generación {}", actualGenerations);
+        } else {
+            log.info("🏁 Detenido por límite de generaciones ({})", maxGenerations);
+        }
+
         // LOG CORREGIDO
         log.info("⏱️  Tiempo total de ejecución: {} minutos {} segundos",
                 duration.toMinutes(), duration.minusMinutes(duration.toMinutes()).getSeconds());
@@ -199,11 +224,42 @@ public class GeneticAlgorithmService {
         double avgDiversity = metricsService.calculateAverageDiversity(generations);
         double threshold90 = optimalValue * 0.9;
 
-        metricsService.logComparisonMetrics(generation90Percent, numGenerations, threshold90, optimalValue, avgDiversity);
-        // Usando getLast() (Java 21+)
-        metricsService.logConvergenceResults(generations.getLast(), function);
+        metricsService.logComparisonMetrics(generation90Percent, actualGenerations, threshold90, optimalValue, avgDiversity);
+        // Usando get(generations.size() - 1) como fallback seguro si no se soporta getLast()
+        metricsService.logConvergenceResults(generations.get(generations.size() - 1), function);
 
         return generations;
+    }
+
+    /**
+     * Verifica si la generación actual ha alcanzado la convergencia del 80%.
+     */
+    private boolean checkConvergence(List<Individual> generation, String functionType) {
+        FitnessFunction function = adaptiveFunctionService.getFunction(functionType);
+        double targetX = function.getTargetX();
+
+        long countConverged = generation.stream()
+                .filter(ind -> Math.abs(Math.abs(ind.getReal()) - targetX) < 0.1)
+                .count();
+
+        double percentage = (double) countConverged / generation.size();
+        boolean converged = percentage >= CONVERGENCE_THRESHOLD;
+
+        String percentageFmt = String.format("%.1f", percentage * 100);
+        int convergencePercentage = (int)(CONVERGENCE_THRESHOLD * 100);
+
+        // Estos logs ya estaban bien, solo se asegura la consistencia en el uso de variables
+        if (converged) {
+            log.info("   → ✅ Convergencia verificada: {}% (≥{}%)",
+                    percentageFmt,
+                    convergencePercentage);
+        } else {
+            log.info("   → ⏳ Convergencia actual: {}% (<{}%)",
+                    percentageFmt,
+                    convergencePercentage);
+        }
+
+        return converged;
     }
 
     private List<Individual> createOrderedGeneration(List<String> binaries, double xmin, double xmax, int L, int generationIndex, String functionType) {

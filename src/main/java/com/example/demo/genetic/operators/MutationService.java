@@ -1,17 +1,19 @@
 package com.example.demo.genetic.operators;
 
-import com.example.demo.conversion.AdaptiveFunctionService;
-import com.example.demo.conversion.BinaryConverterService;
-import com.example.demo.conversion.RealConverterService;
 import com.example.demo.entities.Individual;
-import org.slf4j.*;
+import com.example.demo.conversion.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 @Service
 public class MutationService {
 
     private static final Logger log = LoggerFactory.getLogger(MutationService.class);
+    private final Random random = new Random();
 
     private final BinaryConverterService binaryConverterService;
     private final RealConverterService realConverterService;
@@ -45,7 +47,7 @@ public class MutationService {
             int L,
             int gen,
             String mutationType,
-            String functionType) { // ← Añadido functionType
+            String functionType) {
 
         MutationStrategy strategy = mutationStrategies.get(mutationType);
         if (strategy == null) {
