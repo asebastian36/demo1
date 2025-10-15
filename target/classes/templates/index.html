@@ -3,41 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ingresar los binarios</title>
+    <title>Algoritmo Genético - Configuración</title>
     <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <script th:src="@{/js/app.js}" defer></script>
 </head>
 <body>
 <div class="container">
-    <h1>Ingresar los binarios</h1>
+    <h1>⚙️ Configuración del Algoritmo Genético</h1>
 
-    <form method="POST" action="/uploadTxt" enctype="multipart/form-data">
-        <label for="file">Seleccionar un archivo .txt con los binarios:</label>
-        <input type="file" id="file" name="file" accept=".txt" required>
-
-        <div class="input-group">
-            <label for="xmin">xmin:</label>
-            <input type="number" id="xmin" name="xmin" step="any" required>
+    <form method="POST" action="/uploadTxt" enctype="multipart/form-data" id="configForm">
+        <div class="config-section">
+            <div class="param-group">
+                <label class="param-label" for="mode">Modo de entrada:</label>
+                <select id="mode" name="mode" class="form-control" onchange="toggleMode()">
+                    <option value="file">📁 Usar archivo .txt con binarios</option>
+                    <option value="random" selected>🎲 Generar población aleatoria</option>
+                </select>
+            </div>
         </div>
 
-        <div class="input-group">
-            <label for="xmax">xmax:</label>
-            <input type="number" id="xmax" name="xmax" step="any" required>
+        <!-- Grupo para archivo -->
+        <div id="file-group" class="config-section" style="display:none;">
+            <h3>📄 Archivo de entrada</h3>
+            <div class="param-group">
+                <label class="param-label" for="file">Archivo .txt con binarios:</label>
+                <input type="file" id="file" name="file" accept=".txt" class="form-control">
+            </div>
         </div>
 
-        <div class="input-group">
-            <label for="L">L (precisión):</label>
-            <input type="number" id="L" name="L" min="1" required>
+        <!-- Parámetros comunes -->
+        <div class="config-section">
+            <h3>📊 Parámetros comunes</h3>
+
+            <div class="param-group">
+                <label class="param-label" for="xmin">Rango mínimo (xmin):</label>
+                <input type="number" id="xmin" name="xmin" step="any" value="-3" required class="form-control">
+            </div>
+
+            <div class="param-group">
+                <label class="param-label" for="xmax">Rango máximo (xmax):</label>
+                <input type="number" id="xmax" name="xmax" step="any" value="3" required class="form-control">
+            </div>
+
+            <div class="param-group">
+                <label class="param-label" for="L">Precisión (L - bits):</label>
+                <input type="number" id="L" name="L" min="1" value="15" required class="form-control">
+            </div>
+
+            <div class="param-group">
+                <label class="param-label" for="numGenerations">Número de generaciones:</label>
+                <input type="number" id="numGenerations" name="numGenerations" value="1000" required class="form-control">
+                <small class="form-text text-muted">Rango recomendado: 900-1400</small>
+            </div>
+
+            <div class="param-group">
+                <label class="param-label" for="functionType">Función objetivo:</label>
+                <select id="functionType" name="functionType" class="form-control">
+                    <option value="function5">Función 5: f(x) = (x² - 1)²</option>
+                    <option value="function2">Función 2: f(x) = x² + 2x + 5</option>
+                </select>
+            </div>
         </div>
 
-        <div class="input-group">
-            <label for="crossoverType">Tipo de cruce:</label>
-            <select id="crossoverType" name="crossoverType">
-                <option value="single">Cruce simple</option>
-                <option value="double">Cruce doble</option>
-            </select>
+        <!-- Estrategias -->
+        <div class="config-section">
+            <h3>🧬 Estrategias genéticas</h3>
+
+            <div class="param-group">
+                <label class="param-label" for="selectionType">Método de selección:</label>
+                <select id="selectionType" name="selectionType" class="form-control">
+                    <option value="roulette">Ruleta</option>
+                    <option value="tournament">Torneo</option>
+                </select>
+            </div>
+
+            <div class="param-group">
+                <label class="param-label" for="crossoverType">Tipo de cruce:</label>
+                <select id="crossoverType" name="crossoverType" class="form-control">
+                    <option value="single">Cruce simple (un punto)</option>
+                    <option value="double">Cruce doble (dos puntos)</option>
+                    <option value="uniform">Cruce uniforme</option>
+                </select>
+            </div>
+
+            <div class="param-group">
+                <label class="param-label" for="mutationType">Tipo de mutación:</label>
+                <select id="mutationType" name="mutationType" class="form-control">
+                    <option value="simple">Mutación simple (bit flip)</option>
+                    <option value="inversive">Mutación inversiva</option>
+                    <option value="swap">Mutación por intercambio</option>
+                </select>
+            </div>
         </div>
 
-        <input type="submit" value="Procesar Datos">
+        <!-- Parámetros para modo aleatorio -->
+        <div id="random-params" class="config-section">
+            <h3>🎯 Parámetros del algoritmo</h3>
+
+            <div class="param-group">
+                <label class="param-label" for="populationSize">Tamaño de población:</label>
+                <input type="number" id="populationSize" name="populationSize" value="4200" required class="form-control">
+                <small class="form-text text-muted">Recomendado: 4200 (según enunciado)</small>
+            </div>
+
+            <div class="param-group">
+                <label class="param-label" for="mutationRate">Tasa de mutación:</label>
+                <input type="number" id="mutationRate" name="mutationRate" step="0.001" min="0.0" max="1.0" value="0.001" required class="form-control">
+                <small class="form-text text-muted">Recomendado: 0.001 (0.1% por bit)</small>
+            </div>
+
+            <div class="param-group">
+                <label class="param-label" for="crossoverRate">Tasa de cruce:</label>
+                <input type="number" id="crossoverRate" name="crossoverRate" step="0.01" min="0.0" max="1.0" value="0.8" required class="form-control">
+                <small class="form-text text-muted">Recomendado: 0.8 (80%)</small>
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn">🚀 Ejecutar Algoritmo Genético</button>
     </form>
 </div>
 </body>

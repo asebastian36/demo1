@@ -8,5 +8,4 @@ import java.util.List;
 @Repository
 public interface IndividualRepository extends JpaRepository<Individual, Long> {
     List<Individual> findByGeneration(int generation);
-    List<Individual> findByOrderByAdaptativeDesc();
 }
