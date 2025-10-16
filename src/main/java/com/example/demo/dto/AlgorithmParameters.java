@@ -23,7 +23,7 @@ public class AlgorithmParameters {
 
     @NotNull(message = "L es requerido")
     @Min(value = 1, message = "L debe ser al menos 1")
-    @Max(value = 32, message = "L no puede ser mayor que 32")
+    @Max(value = 64, message = "L no puede ser mayor que 64") // Aumentado para permitir L=34
     private Integer L;
 
     @NotBlank(message = "El tipo de función es requerido")
@@ -57,6 +57,12 @@ public class AlgorithmParameters {
     @DecimalMin(value = "0.0", message = "La tasa de cruce debe ser >= 0")
     @DecimalMax(value = "1.0", message = "La tasa de cruce debe ser <= 1")
     private Double crossoverRate = 0.8;
+
+    // 🚨 NUEVO CAMPO
+    @NotNull(message = "El umbral de convergencia es requerido")
+    @DecimalMin(value = "0.0", message = "El umbral debe ser >= 0")
+    @DecimalMax(value = "1.0", message = "El umbral debe ser <= 1")
+    private Double convergenceThreshold = 0.8;
 
     // Getters y setters
     public String getMode() { return mode; }
@@ -97,4 +103,8 @@ public class AlgorithmParameters {
 
     public Double getCrossoverRate() { return crossoverRate; }
     public void setCrossoverRate(Double crossoverRate) { this.crossoverRate = crossoverRate; }
+
+    // 🚨 NUEVO GETTER/SETTER
+    public Double getConvergenceThreshold() { return convergenceThreshold; }
+    public void setConvergenceThreshold(Double convergenceThreshold) { this.convergenceThreshold = convergenceThreshold; }
 }

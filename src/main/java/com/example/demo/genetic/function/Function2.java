@@ -10,6 +10,12 @@ public class Function2 implements FitnessFunction {
         return x * x + 2 * x + 5;
     }
 
+    // 🚨 IMPLEMENTACIÓN DEL MÉTODO default (OPCIONAL, heredará la excepción)
+    // @Override
+    // public double evaluate(String binary) {
+    //     throw new UnsupportedOperationException("Función 2 opera sobre un valor real (double), no sobre el binario.");
+    // }
+
     @Override
     public String getName() {
         return "Función 2: f(x) = x² + 2x + 5";
@@ -17,11 +23,11 @@ public class Function2 implements FitnessFunction {
 
     @Override
     public double getOptimalValue() {
-        return 173.0; // f(12) = 144 + 24 + 5 = 173
+        return 173.0;
     }
 
     @Override
     public double getTargetX() {
-        return 12.0; // Convergencia en x = 12 (máximo en el rango [2,12])
+        return 12.0;
     }
 }

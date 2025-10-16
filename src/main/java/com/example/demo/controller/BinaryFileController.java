@@ -57,6 +57,13 @@ public class BinaryFileController {
 
         try {
             List<String> binaryNumbers = null;
+            Integer finalL = params.getL();
+            String functionType = params.getFunctionType();
+
+            // FORZAR L=34 para la función de crédito
+            if ("credit".equals(functionType)) {
+                finalL = 34;
+            }
 
             if ("file".equals(params.getMode())) {
                 if (file == null || file.isEmpty()) {
@@ -80,7 +87,7 @@ public class BinaryFileController {
                     throw new IllegalArgumentException("El archivo no contiene números binarios");
                 }
 
-                binaryNumbers = binaryConverterService.normalizeAllBinaries(binaryNumbers, params.getL());
+                binaryNumbers = binaryConverterService.normalizeAllBinaries(binaryNumbers, finalL);
             }
 
             // ✅ INICIAR EJECUCIÓN EN HILO SEPARADO
@@ -88,14 +95,16 @@ public class BinaryFileController {
             executionStatus.startExecution(sessionId, params.getNumGenerations());
 
             List<String> finalBinaryNumbers = binaryNumbers;
+            Integer L_for_GA = finalL;
+
             new Thread(() -> {
                 try {
                     List<List<Individual>> generations = geneticAlgorithmService.runEvolutionWithStatus(
                             finalBinaryNumbers,
                             params.getXmin(),
                             params.getXmax(),
-                            params.getL(),
-                            params.getFunctionType(),
+                            L_for_GA,
+                            functionType,
                             params.getSelectionType(),
                             params.getCrossoverType(),
                             params.getMutationType(),
@@ -105,7 +114,9 @@ public class BinaryFileController {
                             params.getCrossoverRate(),
                             params.getMode(),
                             sessionId,
-                            executionStatus
+                            executionStatus,
+                            // 🚨 PASAR EL NUEVO PARÁMETRO
+                            params.getConvergenceThreshold()
                     );
 
                     List<List<Double>> fitnessByGeneration = generations.stream()
@@ -116,10 +127,10 @@ public class BinaryFileController {
 
                     session.setAttribute("generations", generations);
                     session.setAttribute("fitnessByGeneration", fitnessByGeneration);
-                    session.setAttribute("functionType", params.getFunctionType());
+                    session.setAttribute("functionType", functionType);
                     session.setAttribute("xmin", params.getXmin());
                     session.setAttribute("xmax", params.getXmax());
-                    session.setAttribute("L", params.getL());
+                    session.setAttribute("L", L_for_GA);
 
                     executionStatus.markCompleted(sessionId);
 

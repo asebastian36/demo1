@@ -10,6 +10,8 @@ public class Function5 implements FitnessFunction {
         return Math.pow(x * x - 1, 2);
     }
 
+    // 🚨 IMPLEMENTACIÓN DEL MÉTODO default (OPCIONAL, heredará la excepción)
+
     @Override
     public String getName() {
         return "Función 5: f(x) = (x² - 1)²";
@@ -17,11 +19,11 @@ public class Function5 implements FitnessFunction {
 
     @Override
     public double getOptimalValue() {
-        return 64.0; // f(±3) = 64
+        return 64.0;
     }
 
     @Override
     public double getTargetX() {
-        return 3.0; // Convergencia en x = ±3
+        return 3.0;
     }
 }

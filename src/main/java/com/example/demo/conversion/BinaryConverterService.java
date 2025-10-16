@@ -10,25 +10,25 @@ public class BinaryConverterService {
 
     private static final Logger log = LoggerFactory.getLogger(BinaryConverterService.class);
 
-    public List<Integer> convertBinaryListToIntegers(List<String> binaryNumbers) {
+    public List<Long> convertBinaryListToIntegers(List<String> binaryNumbers) {
         return binaryNumbers.stream()
                 .map(this::convertBinaryToInt)
                 .collect(Collectors.toList());
     }
 
-    public int convertBinaryToInt(String binaryString) {
+    // 🚨 CAMBIO DE int a long
+    public long convertBinaryToInt(String binaryString) {
         String clean = binaryString.trim();
-        // ❌ ELIMINADO: log.trace("Convirtiendo binario a entero: {}", clean);
         if (!clean.matches("[01]+")) {
             log.warn("Cadena no binaria: {}", clean);
             throw new IllegalArgumentException("Cadena no binaria: " + clean);
         }
         try {
-            // ❌ ELIMINADO: log.debug("Binario {} → Decimal {}", clean, value);
-            return Integer.parseInt(clean, 2);
+            // 🚨 USAR Long.parseLong para manejar hasta 63 bits (incluyendo 34)
+            return Long.parseLong(clean, 2);
         } catch (NumberFormatException e) {
-            log.error("Número binario demasiado grande: {}", clean);
-            throw new IllegalArgumentException("Número binario demasiado grande: " + clean);
+            log.error("Número binario demasiado grande (Long): {}", clean);
+            throw new IllegalArgumentException("Número binario demasiado grande (Long): " + clean);
         }
     }
 

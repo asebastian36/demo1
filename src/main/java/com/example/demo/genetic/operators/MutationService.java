@@ -2,6 +2,8 @@ package com.example.demo.genetic.operators;
 
 import com.example.demo.entities.Individual;
 import com.example.demo.conversion.*;
+import com.example.demo.genetic.function.CreditFitnessFunction; // 🚨 Importar
+import com.example.demo.genetic.function.FitnessFunction; // 🚨 Importar
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -66,9 +68,25 @@ public class MutationService {
             String mutatedBinary = strategy.mutate(originalBinary, mutationRate, L);
 
             if (!originalBinary.equals(mutatedBinary)) {
-                int decimal = binaryConverterService.convertBinaryToInt(mutatedBinary);
-                double real = realConverterService.toRealSingle(decimal, xmin, xmax, L);
-                double adaptative = adaptiveFunctionService.toAdaptiveSingle(real, functionType);
+
+                double real;
+                double adaptative;
+
+                // 🚨 SOLUCIÓN: Lógica condicional para CreditFunction
+                if ("credit".equals(functionType)) {
+                    FitnessFunction function = adaptiveFunctionService.getFunction(functionType);
+                    if (!(function instanceof CreditFitnessFunction creditFunction)) {
+                        throw new IllegalStateException("Función de crédito no disponible para re-evaluación.");
+                    }
+                    adaptative = creditFunction.evaluate(mutatedBinary);
+                    real = 0.0; // El valor real único es irrelevante para esta función
+                } else {
+                    // Lógica para funciones f(x)
+                    // 🚨 Usar long para la decodificación
+                    long decimal = binaryConverterService.convertBinaryToInt(mutatedBinary);
+                    real = realConverterService.toRealSingle(decimal, xmin, xmax, L);
+                    adaptative = adaptiveFunctionService.toAdaptiveSingle(real, functionType);
+                }
 
                 Individual mutated = new Individual(mutatedBinary, real, adaptative, original.getGeneration());
                 generation.set(i, mutated);

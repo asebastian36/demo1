@@ -1,6 +1,8 @@
 package com.example.demo.genetic.operators;
 
 import com.example.demo.conversion.*;
+import com.example.demo.genetic.function.CreditFitnessFunction;
+import com.example.demo.genetic.function.FitnessFunction;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
 import java.util.HashMap;
@@ -18,7 +20,7 @@ public class CrossoverService {
 
     public CrossoverService(SinglePointCrossoverStrategy singleStrategy,
                             DoublePointCrossoverStrategy doubleStrategy,
-                            UniformCrossoverStrategy uniformStrategy, // Añadir esta línea
+                            UniformCrossoverStrategy uniformStrategy,
                             BinaryConverterService binaryConverterService,
                             RealConverterService realConverterService,
                             AdaptiveFunctionService adaptiveFunctionService) {
@@ -27,7 +29,7 @@ public class CrossoverService {
         this.adaptiveFunctionService = adaptiveFunctionService;
         strategies.put("single", singleStrategy);
         strategies.put("double", doubleStrategy);
-        strategies.put("uniform", uniformStrategy); // Añadir esta línea
+        strategies.put("uniform", uniformStrategy);
     }
 
     public CrossoverResult crossoverWithLogging(String parent1, String parent2, String crossoverType,
@@ -44,10 +46,10 @@ public class CrossoverService {
         double fitH2 = calculateFitness(children[1], xmin, xmax, L, functionType);
 
         // Formatear valores de fitness para el log
-        String fmtFitP1 = String.format("%.3f", fitP1);
-        String fmtFitP2 = String.format("%.3f", fitP2);
-        String fmtFitH1 = String.format("%.3f", fitH1);
-        String fmtFitH2 = String.format("%.3f", fitH2);
+        String fmtFitP1 = fitP1 == Double.NEGATIVE_INFINITY ? "Error" : String.format("%.3f", fitP1);
+        String fmtFitP2 = fitP2 == Double.NEGATIVE_INFINITY ? "Error" : String.format("%.3f", fitP2);
+        String fmtFitH1 = fitH1 == Double.NEGATIVE_INFINITY ? "Error" : String.format("%.3f", fitH1);
+        String fmtFitH2 = fitH2 == Double.NEGATIVE_INFINITY ? "Error" : String.format("%.3f", fitH2);
 
         // Logs específicos por tipo de cruce
         if ("uniform".equals(crossoverType)) {
@@ -76,9 +78,20 @@ public class CrossoverService {
 
     private double calculateFitness(String binary, double xmin, double xmax, int L, String functionType) {
         try {
-            int decimal = binaryConverterService.convertBinaryToInt(binary);
+            // Lógica condicional para CreditFunction
+            if ("credit".equals(functionType)) {
+                FitnessFunction function = adaptiveFunctionService.getFunction(functionType);
+                if (function instanceof CreditFitnessFunction creditFunction) {
+                    return creditFunction.evaluate(binary); // Llama a la sobrecarga correcta (String)
+                }
+            }
+
+            // Lógica para funciones f(x) (Function2, Function5, etc.)
+            // Usar long para la decodificación
+            long decimal = binaryConverterService.convertBinaryToInt(binary);
             double real = realConverterService.toRealSingle(decimal, xmin, xmax, L);
             return adaptiveFunctionService.toAdaptiveSingle(real, functionType);
+
         } catch (Exception e) {
             log.error("Error calculando fitness para binario {}: {}", binary, e.getMessage());
             return Double.NEGATIVE_INFINITY;

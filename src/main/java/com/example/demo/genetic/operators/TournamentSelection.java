@@ -80,7 +80,7 @@ public class TournamentSelection implements SelectionStrategy {
         String randomBinary = sb.toString();
 
         // 2. Convertir binario a decimal
-        int decimal = binaryConverterService.convertBinaryToInt(randomBinary);
+        long decimal = binaryConverterService.convertBinaryToInt(randomBinary);
 
         // 3. Convertir decimal a valor real
         double real = realConverterService.toRealSingle(decimal, xmin, xmax, L);

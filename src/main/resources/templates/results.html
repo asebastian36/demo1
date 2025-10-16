@@ -1,124 +1,158 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resultados del Algoritmo Genético</title>
     <link rel="stylesheet" th:href="@{/css/styles.css}">
-    <script th:src="@{/js/app.js}" defer></script>
+    <style>
+        /* Estilos específicos para el modo Crédito (Lista) */
+        .results-list { list-style: none; padding: 0; }
+        .results-list li {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 0.95em;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .risk-low { border-left: 5px solid #27ae60; background-color: #e6ffe6; }
+        .risk-high { border-left: 5px solid #c0392b; background-color: #ffe6e6; }
+        .risk-mid { border-left: 5px solid #f39c12; background-color: #fff8e6; }
+        .label { font-weight: bold; margin-right: 5px; color: #34495e; }
+        .value { margin-right: 15px; }
+
+        /* Estilos específicos para el modo f(x) (Tabla y Gráfica) */
+        #generation-table th, #generation-table td { text-align: left; padding: 8px; border: 1px solid #ddd; }
+        .best-individual-highlight { background-color: #dff0d8 !important; font-weight: bold; }
+        #generation-table tbody tr:hover { background-color: #f5f5f5; }
+        .chart-container { position: relative; width: 100%; margin: 20px 0; text-align: center; }
+    </style>
 </head>
 <body>
 <div class="container">
-    <div class="results-header">
-        <h1>📊 Resultados del Algoritmo Genético</h1>
-        <p>Función: <span th:text="${#objects.nullSafe(functionType, 'N/A')}"></span></p>
-    </div>
+    <h1>Análisis de Resultados del Algoritmo Genético 📊</h1>
 
-    <div class="generation-info">
-        <h3>📋 Parámetros utilizados</h3>
-        <p>
-            <strong>Rango:</strong> [<span th:text="${xmin}"></span>, <span th:text="${xmax}"></span>] |
-            <strong>Precisión:</strong> <span th:text="${L}"></span> bits |
-            <strong>Total generaciones:</strong> <span th:text="${#lists.size(generations)}"></span>
-        </p>
-    </div>
+    <th:block th:if="${error}">
+        <p class="error-container error-title" th:text="${error}"></p>
+    </th:block>
 
-    <!-- Gráfica -->
-    <div class="chart-container" style="margin: 30px 0;">
-        <h3>📈 Evolución del Mejor Valor Adaptativo</h3>
-        <img th:src="${chartImage}" alt="Gráfica de valores adaptativos"
-             style="width: 100%; max-width: 800px; height: auto; border: 1px solid #ddd; border-radius: 4px;">
-    </div>
-
-    <!-- Controles de navegación -->
-    <div class="navigation-controls">
-        <div class="nav-section">
-            <!-- Botón Anterior -->
-            <th:block th:if="${currentGeneration > 1}">
-                <a class="nav-button"
-                   th:href="@{/results(currentGeneration=${currentGeneration - 1})}">
-                    ← Generación Anterior
-                </a>
-            </th:block>
-            <th:block th:if="${currentGeneration <= 1}">
-                <span class="nav-button disabled">← Generación Anterior</span>
-            </th:block>
+    <th:block th:unless="${error}">
+        <div class="results-header" th:if="${generations != null and !generations.isEmpty()}">
+            <h2 style="color: white; border-bottom: none;">Resumen de la Ejecución</h2>
+            <p>Función: <span th:text="${functionType}"></span></p>
+            <p>Total de Generaciones: <span th:text="${#lists.size(generations)}"></span></p>
+            <p th:if="${bestIndividual}">Mejor Fitness Encontrado: <span th:text="${#numbers.formatDecimal(bestIndividual.adaptative, 1, 4)}"></span></p>
         </div>
 
-        <div class="nav-section">
-            <span class="current-generation">Generación <span th:text="${currentGeneration}"></span></span>
-            <span>de <span th:text="${#lists.size(generations)}"></span></span>
-        </div>
-
-        <div class="nav-section">
-            <div class="jump-to-generation">
-                <form th:action="@{/results}" method="get">
-                    <label for="genInput" style="margin: 0; font-weight: normal;">Ir a:</label>
-                    <input type="number" id="genInput" name="currentGeneration"
-                           th:min="1" th:max="${#lists.size(generations)}"
-                           th:value="${currentGeneration}" required>
-                    <button type="submit">Ir</button>
-                </form>
+        <th:block th:if="${isCreditFunction}">
+            <div class="generation-info">
+                <h2>🏆 Top 10 Perfiles de Cliente</h2>
+                <p>Decodificación simple de las variables clave y la conclusión de riesgo para los individuos más aptos.</p>
             </div>
-        </div>
 
-        <div class="nav-section">
-            <!-- Botón Siguiente -->
-            <th:block th:if="${currentGeneration < #lists.size(generations)}">
-                <a class="nav-button"
-                   th:href="@{/results(currentGeneration=${currentGeneration + 1})}">
-                    Siguiente Generación →
-                </a>
-            </th:block>
-            <th:block th:if="${currentGeneration >= #lists.size(generations)}">
-                <span class="nav-button disabled">Siguiente Generación →</span>
-            </th:block>
-        </div>
-    </div>
+            <ul class="results-list">
+                <th:block th:each="interpretation, index : ${top10Interpretations}">
 
-    <!-- Contenido de la generación actual -->
-    <th:block th:if="${generations != null and #lists.size(generations) >= currentGeneration}">
-        <div class="generation-info">
-            <h2 th:text="'Generación ' + ${currentGeneration}"></h2>
-            <p><strong>Total individuos:</strong> <span th:text="${#lists.size(generations[currentGeneration - 1])}"></span></p>
-        </div>
+                    <li th:with="conclusion=${interpretation['Interpretación']},
+                                      riskClass=
+                                        (${#strings.contains(conclusion, 'Riesgo BAJO') or #strings.contains(conclusion, 'Riesgo MUY BAJO')} ? 'risk-low' :
+                                        (${#strings.contains(conclusion, 'Riesgo MEDIO')} ? 'risk-mid' : 'risk-high'))"
+                        th:class="${riskClass}">
 
-        <div class="table-container">
-            <table>
-                <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Binario (<span th:text="${L}"></span> bits)</th>
-                    <th>Decimal</th>
-                    <th>Valor Real</th>
-                    <th>Adaptativo</th>
-                    <th>Generación</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="individual, rowStat : ${generations[currentGeneration - 1]}">
-                    <td th:text="${rowStat.index + 1}"></td>
-                    <td th:text="${individual.binary}"></td>
-                    <td th:text="${binaryService.convertBinaryToInt(individual.binary)}"></td>
-                    <td th:text="${#numbers.formatDecimal(individual.real, 1, 3)}"></td>
-                    <td th:text="${#numbers.formatDecimal(individual.adaptative, 1, 3)}"></td>
-                    <td th:text="${individual.generation + 1}"></td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
+                        <span class="label">#<span th:text="${index.index + 1}"></span>:</span>
+
+                        <th:block th:each="entry : ${interpretation}"
+                                  th:if="${entry.key != 'Fitness Total' and entry.key != 'Interpretación'}">
+                            <span class="label" th:text="${entry.key} + ':'"></span>
+                            <span class="value" th:text="${entry.value}"></span>
+                        </th:block>
+
+                        <span style="margin-left: auto;">
+                                <span class="label">| Fitness:</span>
+                                <span class="value" th:text="${interpretation['Fitness Total']}"></span>
+                                <span class="label">| Riesgo:</span>
+                                <span class="value" th:text="${interpretation['Interpretación']}" style="font-weight: bold;"></span>
+                            </span>
+                    </li>
+                </th:block>
+            </ul>
+        </th:block>
+
+        <th:block th:if="${!isCreditFunction}">
+            <div class="generation-info">
+                <h3>📋 Parámetros utilizados</h3>
+                <p>
+                    <strong>Rango:</strong> [<span th:text="${xmin}"></span>, <span th:text="${xmax}"></span>] |
+                    <strong>Precisión:</strong> <span th:text="${L}"></span> bits |
+                    <strong>Total generaciones:</strong> <span th:text="${totalGenerations}"></span>
+                </p>
+            </div>
+
+            <h2 style="margin-top: 30px;">📈 Convergencia del Algoritmo</h2>
+            <p>Gráfica del mejor individuo de cada generación vs. el valor óptimo esperado.</p>
+
+            <div class="chart-container">
+                <img th:src="${chartImage}" alt="Gráfica de convergencia del fitness"
+                     style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+
+            <h2 style="margin-top: 40px;">🧪 Inspección Generación por Generación</h2>
+            <p>Navega a través de las generaciones para ver la evolución de los individuos.</p>
+
+            <div id="generation-viewer">
+
+                <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
+
+                    <th:block th:if="${currentGeneration > 1}">
+                        <a class="nav-button" th:href="@{/results(currentGeneration=${currentGeneration - 1})}">
+                            &#9664; Anterior
+                        </a>
+                    </th:block>
+                    <th:block th:if="${currentGeneration <= 1}">
+                        <span class="nav-button disabled">&#9664; Anterior</span>
+                    </th:block>
+
+                    <span>Generación Actual: <strong th:text="${currentGeneration}">1</strong> / <span th:text="${totalGenerations}"></span></span>
+
+                    <th:block th:if="${currentGeneration < totalGenerations}">
+                        <a class="nav-button" th:href="@{/results(currentGeneration=${currentGeneration + 1})}">
+                            Siguiente &#9658;
+                        </a>
+                    </th:block>
+                    <th:block th:if="${currentGeneration >= totalGenerations}">
+                        <span class="nav-button disabled">Siguiente &#9658;</span>
+                    </th:block>
+                </div>
+
+                <table id="generation-table" style="width: 100%;">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Cromosoma Binario</th>
+                        <th>Valor Decimal</th>
+                        <th>Valor Real (x)</th>
+                        <th>Aptitud (Fitness)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="individual, rowStat : ${currentGenIndividuals}"
+                        th:classappend="${rowStat.index == 0} ? 'best-individual-highlight'">
+
+                        <td th:text="${rowStat.index + 1}"></td>
+                        <td th:text="${individual.binary}"></td>
+                        <td th:text="${binaryService.convertBinaryToInt(individual.binary)}"></td>
+                        <td th:text="${#numbers.formatDecimal(individual.real, 1, 6)}"></td>
+                        <td th:text="${#numbers.formatDecimal(individual.adaptative, 1, 6)}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </th:block>
     </th:block>
 
-    <th:block th:if="${generations == null or #lists.size(generations) < currentGeneration}">
-        <div style="color: red; font-weight: bold; padding: 20px; background: #ffeaea; border-radius: 5px; margin: 20px 0;">
-            <h3>❌ Error</h3>
-            <p>No hay datos disponibles para la Generación <span th:text="${currentGeneration}"></span></p>
-        </div>
-    </th:block>
-
-    <div style="margin-top: 20px;">
-        <a href="/" class="back-button">🏠 Volver al inicio</a>
-    </div>
+    <p style="text-align: center; margin-top: 30px;"><a href="/" class="back-button">← Ejecutar nuevo algoritmo</a></p>
 </div>
 </body>
 </html>

@@ -18,10 +18,16 @@ public class RandomPopulationSource implements PopulationSource {
     @Override
     public List<String> generatePopulation(int L) {
         List<String> population = new ArrayList<>();
+
+        // 🚨 SOLUCIÓN 2: Bucle para generar L bits
         for (int i = 0; i < populationSize; i++) {
             StringBuilder sb = new StringBuilder();
             for (int j = 0; j < L; j++) {
                 sb.append(random.nextBoolean() ? '1' : '0');
+            }
+            if (sb.length() != L) {
+                // Esto no debería suceder. Si pasa, hay un error mayor en la JVM/Random.
+                throw new IllegalStateException("Error al generar binario: Longitud es " + sb.length() + " pero debería ser " + L);
             }
             population.add(sb.toString());
         }
