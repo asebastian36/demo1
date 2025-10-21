@@ -232,17 +232,11 @@ public class GeneticAlgorithmService {
 
                 if (offspring.size() > currentPopulationSize) {
                     offspring = new ArrayList<>(offspring.subList(0, currentPopulationSize));
-                } else if (offspring.size() < currentPopulationSize) {
-                    Individual best = offspring.isEmpty() ? generation.get(0) : offspring.get(0);
-                    while (offspring.size() < currentPopulationSize) {
-                        offspring.add(new Individual(best.getBinary(), best.getReal(), best.getAdaptative(), gen + 1));
-                    }
                 }
 
                 currentBinaries = offspring.stream().map(Individual::getBinary).collect(Collectors.toList());
                 log.info("→ Población ajustada a {} individuos", currentBinaries.size());
-            }
-        }
+            }        }
 
         Instant end = Instant.now();
         Duration duration = Duration.between(start, end);
