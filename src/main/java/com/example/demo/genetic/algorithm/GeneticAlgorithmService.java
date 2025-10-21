@@ -9,6 +9,7 @@ import com.example.demo.genetic.population.PopulationSource;
 import com.example.demo.strategy.FitnessEvaluationStrategy;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -84,7 +85,7 @@ public class GeneticAlgorithmService {
             double crossoverRate,
             String populationSourceType,
             String sessionId,
-            ExecutionStatus executionStatus,
+            ExecutionContext context,
             double convergenceThreshold) {
 
         Instant start = Instant.now();
@@ -145,8 +146,8 @@ public class GeneticAlgorithmService {
         for (int gen = 0; gen < maxGenerations; gen++) {
             actualGenerations = gen + 1;
 
-            if (executionStatus != null) {
-                executionStatus.updateGeneration(sessionId, actualGenerations);
+            if (context != null) {
+                context.updateGeneration(actualGenerations);
             }
 
             log.info(" ");
@@ -163,8 +164,8 @@ public class GeneticAlgorithmService {
                 log.info("🎉 ✅ ¡CONVERGENCIA DEL {}% ALCANZADA EN GENERACIÓN {}!",
                         (int)(convergenceThreshold * 100), actualGenerations);
                 convergenceAchieved = true;
-                if (executionStatus != null) {
-                    executionStatus.updateGeneration(sessionId, actualGenerations);
+                if (context != null) {
+                    context.updateGeneration(actualGenerations);
                 }
                 break;
             }
@@ -274,6 +275,10 @@ public class GeneticAlgorithmService {
 
         metricsService.logComparisonMetrics(generation90Percent, actualGenerations, threshold90, optimalValue, avgDiversity);
         metricsService.logConvergenceResults(generations.get(generations.size() - 1), func);
+
+        if (context != null) {
+            context.markCompleted();
+        }
 
         return generations;
     }

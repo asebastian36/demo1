@@ -1,8 +1,7 @@
 package com.example.demo.controller;
 
-// package com.example.demo.controller;
-
-import com.example.demo.genetic.algorithm.ExecutionStatus;
+import com.example.demo.genetic.algorithm.ExecutionContext;
+import com.example.demo.storage.ResultStorageService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -13,10 +12,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 public class LoadingController {
 
-    private final ExecutionStatus executionStatus;
+    private final ResultStorageService resultStorageService;
 
-    public LoadingController(ExecutionStatus executionStatus) {
-        this.executionStatus = executionStatus;
+    public LoadingController(ResultStorageService resultStorageService) {
+        this.resultStorageService = resultStorageService;
     }
 
     @GetMapping("/loading")
@@ -29,11 +28,16 @@ public class LoadingController {
     @GetMapping("/api/execution-status")
     @ResponseBody
     public ExecutionProgress getExecutionStatus(@RequestParam String sessionId) {
-        boolean completed = executionStatus.isCompleted(sessionId);
-        int currentGen = executionStatus.getCurrentGeneration(sessionId);
-        int totalGen = executionStatus.getTotalGenerations(sessionId);
+        ExecutionContext context = resultStorageService.get(sessionId + "_context", ExecutionContext.class);
+        if (context == null) {
+            return new ExecutionProgress(true, 0, 0); // completado por defecto
+        }
 
-        return new ExecutionProgress(completed, currentGen, totalGen);
+        return new ExecutionProgress(
+                context.isCompleted(),
+                context.getCurrentGeneration(),
+                context.getTotalGenerations()
+        );
     }
 
     public static class ExecutionProgress {
@@ -47,7 +51,6 @@ public class LoadingController {
             this.totalGenerations = totalGenerations;
         }
 
-        // Getters
         public boolean isCompleted() { return completed; }
         public int getCurrentGeneration() { return currentGeneration; }
         public int getTotalGenerations() { return totalGenerations; }

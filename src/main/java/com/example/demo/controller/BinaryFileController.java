@@ -2,7 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.AlgorithmParameters;
 import com.example.demo.entities.Individual;
-import com.example.demo.genetic.algorithm.ExecutionStatus;
+import com.example.demo.genetic.algorithm.ExecutionContext;
 import com.example.demo.genetic.algorithm.GeneticAlgorithmService;
 import com.example.demo.conversion.BinaryConverterService;
 import com.example.demo.storage.ResultStorageService;
@@ -24,16 +24,13 @@ public class BinaryFileController {
 
     private final GeneticAlgorithmService geneticAlgorithmService;
     private final BinaryConverterService binaryConverterService;
-    private final ExecutionStatus executionStatus;
     private final ResultStorageService resultStorageService;
 
     public BinaryFileController(GeneticAlgorithmService geneticAlgorithmService,
                                 BinaryConverterService binaryConverterService,
-                                ExecutionStatus executionStatus,
                                 ResultStorageService resultStorageService) {
         this.geneticAlgorithmService = geneticAlgorithmService;
         this.binaryConverterService = binaryConverterService;
-        this.executionStatus = executionStatus;
         this.resultStorageService = resultStorageService;
     }
 
@@ -92,7 +89,7 @@ public class BinaryFileController {
             }
 
             String sessionId = session.getId();
-            executionStatus.startExecution(sessionId, params.getNumGenerations());
+            ExecutionContext context = new ExecutionContext(params.getNumGenerations());
 
             List<String> finalBinaryNumbers = binaryNumbers;
             Integer L_for_GA = finalL;
@@ -114,7 +111,7 @@ public class BinaryFileController {
                             params.getCrossoverRate(),
                             params.getMode(),
                             sessionId,
-                            executionStatus,
+                            context,
                             params.getConvergenceThreshold()
                     );
 
@@ -122,9 +119,8 @@ public class BinaryFileController {
                             .map(gen -> gen.stream()
                                     .map(Individual::getAdaptative)
                                     .collect(Collectors.toList()))
-                            .collect(Collectors.toList());
+                            .toList();
 
-                    // 🚨 Almacenar en ResultStorageService (NO en sesión)
                     resultStorageService.store(sessionId, Map.of(
                             "generations", generations,
                             "fitnessByGeneration", fitnessByGeneration,
@@ -134,12 +130,15 @@ public class BinaryFileController {
                             "L", L_for_GA
                     ));
 
-                    executionStatus.markCompleted(sessionId);
+                    context.markCompleted();
 
                 } catch (Exception e) {
-                    executionStatus.markCompleted(sessionId);
+                    context.markCompleted();
                 }
             }).start();
+
+            // 🚨 Almacenar el contexto para el endpoint de estado
+            resultStorageService.store(sessionId + "_context", context);
 
             return "redirect:/loading";
 
