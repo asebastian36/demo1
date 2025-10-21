@@ -74,7 +74,7 @@ public class GeneticAlgorithmService {
             List<String> fileBinaries,
             double xmin,
             double xmax,
-            int L,
+            int finalL,
             String functionType,
             String selectionType,
             String crossoverType,
@@ -88,13 +88,7 @@ public class GeneticAlgorithmService {
             ExecutionContext context,
             double convergenceThreshold) {
 
-        Instant start = Instant.now();
-        int finalL = L;
-
-        if ("credit".equals(functionType)) {
-            finalL = 34;
-            log.info("   -> ADVERTENCIA: Función de Crédito seleccionada. L forzado a {}", finalL);
-        }
+        Instant start = Instant.now(); // ⬅️ Ya viene preprocesado desde el controlador
 
         log.info("🚀 INICIANDO ALGORITMO GENÉTICO");
         log.info("   Función: {}", adaptiveFunctionService.getFunction(functionType).getName());
@@ -274,7 +268,7 @@ public class GeneticAlgorithmService {
         double threshold90 = optimalValue * 0.9;
 
         metricsService.logComparisonMetrics(generation90Percent, actualGenerations, threshold90, optimalValue, avgDiversity);
-        metricsService.logConvergenceResults(generations.get(generations.size() - 1), func);
+        metricsService.logConvergenceResults(generations.getLast(), func);
 
         if (context != null) {
             context.markCompleted();

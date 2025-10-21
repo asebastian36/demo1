@@ -6,6 +6,7 @@ import com.example.demo.genetic.algorithm.ExecutionContext;
 import com.example.demo.genetic.algorithm.GeneticAlgorithmService;
 import com.example.demo.storage.ResultStorageService;
 import com.example.demo.validation.FileValidationService;
+import com.example.demo.preprocessing.ParameterPreprocessor;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
@@ -13,6 +14,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,13 +24,16 @@ public class BinaryFileController {
     private final GeneticAlgorithmService geneticAlgorithmService;
     private final ResultStorageService resultStorageService;
     private final FileValidationService fileValidationService;
+    private final ParameterPreprocessor parameterPreprocessor;
 
     public BinaryFileController(GeneticAlgorithmService geneticAlgorithmService,
                                 ResultStorageService resultStorageService,
-                                FileValidationService fileValidationService) {
+                                FileValidationService fileValidationService,
+                                ParameterPreprocessor parameterPreprocessor) {
         this.geneticAlgorithmService = geneticAlgorithmService;
         this.resultStorageService = resultStorageService;
         this.fileValidationService = fileValidationService;
+        this.parameterPreprocessor = parameterPreprocessor;
     }
 
     @GetMapping("/")
@@ -52,24 +57,20 @@ public class BinaryFileController {
         }
 
         try {
+            parameterPreprocessor.preprocess(params);
+
             List<String> binaryNumbers = null;
-            Integer finalL = params.getL();
+            Integer L_for_GA = params.getL();
             String functionType = params.getFunctionType();
 
-            if ("credit".equals(functionType)) {
-                finalL = 34;
-            }
-
             if ("file".equals(params.getMode())) {
-                // 🚨 Validación y lectura delegadas al servicio
-                binaryNumbers = fileValidationService.validateAndReadBinaries(file, finalL);
+                binaryNumbers = fileValidationService.validateAndReadBinaries(file, L_for_GA);
             }
 
             String sessionId = session.getId();
             ExecutionContext context = new ExecutionContext(params.getNumGenerations());
 
             List<String> finalBinaryNumbers = binaryNumbers;
-            Integer L_for_GA = finalL;
 
             new Thread(() -> {
                 try {
