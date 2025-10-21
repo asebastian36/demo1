@@ -1,13 +1,6 @@
 package com.example.demo.entities;
 
-import jakarta.persistence.*;
-
-@Entity
 public class Individual {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     private String binary;
     private Double real;
@@ -22,10 +15,8 @@ public class Individual {
     }
 
     public Individual() {
-
     }
 
-    public Long getId() { return id; }
     public String getBinary() { return binary; }
     public Double getReal() { return real; }
     public Double getAdaptative() { return adaptative; }
@@ -34,8 +25,7 @@ public class Individual {
     @Override
     public String toString() {
         return "Individual{" +
-                "id=" + id +
-                ", binary='" + binary + '\'' +
+                "binary='" + binary + '\'' +
                 ", real=" + real +
                 ", adaptative=" + adaptative +
                 ", generation=" + generation +

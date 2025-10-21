@@ -8,7 +8,6 @@ import com.example.demo.genetic.metrics.MetricsService;
 import com.example.demo.genetic.population.PopulationSource;
 import org.slf4j.*;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -18,8 +17,6 @@ import java.util.stream.Collectors;
 public class GeneticAlgorithmService {
 
     private static final Logger log = LoggerFactory.getLogger(GeneticAlgorithmService.class);
-    // La constante CONVERGENCE_THRESHOLD se ha eliminado y ahora se usa el parámetro convergenceThreshold
-
     private final AdaptiveFunctionService adaptiveFunctionService;
     private final CrossoverService crossoverService;
     private final MutationService mutationService;
@@ -47,7 +44,6 @@ public class GeneticAlgorithmService {
         this.populationSources = populationSources;
     }
 
-    @Transactional
     public List<List<Individual>> runEvolution(
             List<String> fileBinaries,
             double xmin,
@@ -69,7 +65,6 @@ public class GeneticAlgorithmService {
                 crossoverRate, populationSourceType, "default", null, 0.8);
     }
 
-    @Transactional
     public List<List<Individual>> runEvolutionWithStatus(
             List<String> fileBinaries,
             double xmin,
@@ -261,7 +256,6 @@ public class GeneticAlgorithmService {
             log.info("🏁 Detenido por límite de generaciones ({})", maxGenerations);
         }
 
-        // CORRECCIÓN PRINCIPAL: Usar {} para minutos y segundos
         log.info("⏱️  Tiempo total de ejecución: {} minutos {} segundos", minutes, seconds);
 
         FitnessFunction function = adaptiveFunctionService.getFunction(functionType);
@@ -273,12 +267,11 @@ public class GeneticAlgorithmService {
 
         metricsService.logComparisonMetrics(generation90Percent, actualGenerations, threshold90, optimalValue, avgDiversity);
         // Nota: Si usas Java 21+, getLast() es correcto. Si usas una versión anterior (ej. Java 17), usa get(generations.size() - 1)
-        metricsService.logConvergenceResults(generations.get(generations.size() - 1), function);
+        metricsService.logConvergenceResults(generations.getLast(), function);
 
         return generations;
     }
 
-    // MODIFICAR FIRMA para aceptar convergenceThreshold
     private boolean checkConvergence(List<Individual> generation, String functionType, double convergenceThreshold) {
         FitnessFunction function = adaptiveFunctionService.getFunction(functionType);
         double targetX = function.getTargetX();
