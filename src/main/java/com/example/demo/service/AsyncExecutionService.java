@@ -68,6 +68,7 @@ public class AsyncExecutionService {
                             .collect(Collectors.toList()))
                     .toList();
 
+            // 🚨 Solo datos esenciales, sin chartImage
             resultStorageService.store(sessionId, Map.of(
                     "generations", generations,
                     "fitnessByGeneration", fitnessByGeneration,

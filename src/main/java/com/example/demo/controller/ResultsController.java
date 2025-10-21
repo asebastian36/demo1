@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -34,8 +35,6 @@ public class ResultsController {
                               Model model) {
         try {
             String sessionId = session.getId();
-
-            // 🚨 Obtener datos del almacenamiento temporal
             @SuppressWarnings("unchecked")
             Map<String, Object> results = resultStorageService.get(sessionId, Map.class);
 
@@ -81,9 +80,8 @@ public class ResultsController {
                 model.addAttribute("totalGenerations", totalGenerations);
             }
 
+            // 🚨 Generar gráfica al renderizar
             String chartImage = chartService.generateAdaptativeChart(fitnessByGeneration, functionType);
-
-            model.addAttribute("generations", generations);
             model.addAttribute("chartImage", chartImage);
             model.addAttribute("xmin", xmin);
             model.addAttribute("xmax", xmax);
