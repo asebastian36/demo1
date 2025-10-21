@@ -35,42 +35,41 @@ public class CrossoverService {
     public CrossoverResult crossoverWithLogging(String parent1, String parent2, String crossoverType,
                                                 int pairIndex, int L, double xmin, double xmax, String functionType) {
         CrossoverStrategy strategy = strategies.getOrDefault(crossoverType, strategies.get("single"));
-
         CrossoverResult result = strategy.crossover(parent1, parent2);
-        String[] children = result.getChildren();
 
-        // Calcular fitness
-        double fitP1 = calculateFitness(parent1, xmin, xmax, L, functionType);
-        double fitP2 = calculateFitness(parent2, xmin, xmax, L, functionType);
-        double fitH1 = calculateFitness(children[0], xmin, xmax, L, functionType);
-        double fitH2 = calculateFitness(children[1], xmin, xmax, L, functionType);
+        // 🚨 Solo loguear en DEBUG
+        if (log.isDebugEnabled()) {
+            String[] children = result.getChildren();
+            double fitP1 = calculateFitness(parent1, xmin, xmax, L, functionType);
+            double fitP2 = calculateFitness(parent2, xmin, xmax, L, functionType);
+            double fitH1 = calculateFitness(children[0], xmin, xmax, L, functionType);
+            double fitH2 = calculateFitness(children[1], xmin, xmax, L, functionType);
 
-        // Formatear valores de fitness para el log
-        String fmtFitP1 = fitP1 == Double.NEGATIVE_INFINITY ? "Error" : String.format("%.3f", fitP1);
-        String fmtFitP2 = fitP2 == Double.NEGATIVE_INFINITY ? "Error" : String.format("%.3f", fitP2);
-        String fmtFitH1 = fitH1 == Double.NEGATIVE_INFINITY ? "Error" : String.format("%.3f", fitH1);
-        String fmtFitH2 = fitH2 == Double.NEGATIVE_INFINITY ? "Error" : String.format("%.3f", fitH2);
+            String fmtFitP1 = fitP1 == Double.NEGATIVE_INFINITY ? "Error" : String.format("%.3f", fitP1);
+            String fmtFitP2 = fitP2 == Double.NEGATIVE_INFINITY ? "Error" : String.format("%.3f", fitP2);
+            String fmtFitH1 = fitH1 == Double.NEGATIVE_INFINITY ? "Error" : String.format("%.3f", fitH1);
+            String fmtFitH2 = fitH2 == Double.NEGATIVE_INFINITY ? "Error" : String.format("%.3f", fitH2);
 
-        // Logs específicos por tipo de cruce
-        if ("uniform".equals(crossoverType)) {
-            log.info("""
-                🧬 Pareja {}: Cruce uniforme
-                  Padre 1: {} → f(x) = {}
-                  Padre 2: {} → f(x) = {}
-                  Hijo 1:  {} → f(x) = {}
-                  Hijo 2:  {} → f(x) = {}""",
-                    pairIndex, parent1, fmtFitP1, parent2, fmtFitP2, children[0], fmtFitH1, children[1], fmtFitH2);
-        } else {
-            String pointStr = result.getCutPointsString();
-            log.info("""
-                🧬 Pareja {}: Cruce de un punto
-                  Padre 1: {} → f(x) = {}
-                  Padre 2: {} → f(x) = {}
-                  Punto de corte: {}
-                  Hijo 1:  {} → f(x) = {}
-                  Hijo 2:  {} → f(x) = {}""",
-                    pairIndex, parent1, fmtFitP1, parent2, fmtFitP2,
-                    pointStr, children[0], fmtFitH1, children[1], fmtFitH2);
+            if ("uniform".equals(crossoverType)) {
+                log.debug("""
+                    🧬 Pareja {}: Cruce uniforme
+                      Padre 1: {} → f(x) = {}
+                      Padre 2: {} → f(x) = {}
+                      Hijo 1:  {} → f(x) = {}
+                      Hijo 2:  {} → f(x) = {}""",
+                        pairIndex, parent1, fmtFitP1, parent2, fmtFitP2, children[0], fmtFitH1, children[1], fmtFitH2);
+            } else {
+                String pointStr = result.getCutPointsString();
+                log.debug("""
+                    🧬 Pareja {}: Cruce de un punto
+                      Padre 1: {} → f(x) = {}
+                      Padre 2: {} → f(x) = {}
+                      Punto de corte: {}
+                      Hijo 1:  {} → f(x) = {}
+                      Hijo 2:  {} → f(x) = {}""",
+                        pairIndex, parent1, fmtFitP1, parent2, fmtFitP2,
+                        pointStr, children[0], fmtFitH1, children[1], fmtFitH2);
+            }
         }
 
         return result;
@@ -78,20 +77,15 @@ public class CrossoverService {
 
     private double calculateFitness(String binary, double xmin, double xmax, int L, String functionType) {
         try {
-            // Lógica condicional para CreditFunction
             if ("credit".equals(functionType)) {
                 FitnessFunction function = adaptiveFunctionService.getFunction(functionType);
                 if (function instanceof CreditFitnessFunction creditFunction) {
-                    return creditFunction.evaluate(binary); // Llama a la sobrecarga correcta (String)
+                    return creditFunction.evaluate(binary);
                 }
             }
-
-            // Lógica para funciones f(x) (Function2, Function5, etc.)
-            // Usar long para la decodificación
             long decimal = binaryConverterService.convertBinaryToInt(binary);
             double real = realConverterService.toRealSingle(decimal, xmin, xmax, L);
             return adaptiveFunctionService.toAdaptiveSingle(real, functionType);
-
         } catch (Exception e) {
             log.error("Error calculando fitness para binario {}: {}", binary, e.getMessage());
             return Double.NEGATIVE_INFINITY;
