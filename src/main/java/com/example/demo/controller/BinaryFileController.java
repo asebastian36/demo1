@@ -5,6 +5,7 @@ import com.example.demo.entities.Individual;
 import com.example.demo.genetic.algorithm.ExecutionStatus;
 import com.example.demo.genetic.algorithm.GeneticAlgorithmService;
 import com.example.demo.conversion.BinaryConverterService;
+import com.example.demo.storage.ResultStorageService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
@@ -15,9 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Controller
@@ -26,13 +25,16 @@ public class BinaryFileController {
     private final GeneticAlgorithmService geneticAlgorithmService;
     private final BinaryConverterService binaryConverterService;
     private final ExecutionStatus executionStatus;
+    private final ResultStorageService resultStorageService;
 
     public BinaryFileController(GeneticAlgorithmService geneticAlgorithmService,
                                 BinaryConverterService binaryConverterService,
-                                ExecutionStatus executionStatus) {
+                                ExecutionStatus executionStatus,
+                                ResultStorageService resultStorageService) {
         this.geneticAlgorithmService = geneticAlgorithmService;
         this.binaryConverterService = binaryConverterService;
         this.executionStatus = executionStatus;
+        this.resultStorageService = resultStorageService;
     }
 
     @GetMapping("/")
@@ -60,7 +62,6 @@ public class BinaryFileController {
             Integer finalL = params.getL();
             String functionType = params.getFunctionType();
 
-            // FORZAR L=34 para la función de crédito
             if ("credit".equals(functionType)) {
                 finalL = 34;
             }
@@ -90,7 +91,6 @@ public class BinaryFileController {
                 binaryNumbers = binaryConverterService.normalizeAllBinaries(binaryNumbers, finalL);
             }
 
-            // ✅ INICIAR EJECUCIÓN EN HILO SEPARADO
             String sessionId = session.getId();
             executionStatus.startExecution(sessionId, params.getNumGenerations());
 
@@ -115,7 +115,6 @@ public class BinaryFileController {
                             params.getMode(),
                             sessionId,
                             executionStatus,
-                            // 🚨 PASAR EL NUEVO PARÁMETRO
                             params.getConvergenceThreshold()
                     );
 
@@ -125,12 +124,15 @@ public class BinaryFileController {
                                     .collect(Collectors.toList()))
                             .collect(Collectors.toList());
 
-                    session.setAttribute("generations", generations);
-                    session.setAttribute("fitnessByGeneration", fitnessByGeneration);
-                    session.setAttribute("functionType", functionType);
-                    session.setAttribute("xmin", params.getXmin());
-                    session.setAttribute("xmax", params.getXmax());
-                    session.setAttribute("L", L_for_GA);
+                    // 🚨 Almacenar en ResultStorageService (NO en sesión)
+                    resultStorageService.store(sessionId, Map.of(
+                            "generations", generations,
+                            "fitnessByGeneration", fitnessByGeneration,
+                            "functionType", functionType,
+                            "xmin", params.getXmin(),
+                            "xmax", params.getXmax(),
+                            "L", L_for_GA
+                    ));
 
                     executionStatus.markCompleted(sessionId);
 
