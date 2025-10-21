@@ -4,8 +4,8 @@ import com.example.demo.dto.AlgorithmParameters;
 import com.example.demo.entities.Individual;
 import com.example.demo.genetic.algorithm.ExecutionContext;
 import com.example.demo.genetic.algorithm.GeneticAlgorithmService;
-import com.example.demo.conversion.BinaryConverterService;
 import com.example.demo.storage.ResultStorageService;
+import com.example.demo.validation.FileValidationService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
@@ -13,9 +13,6 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,15 +20,15 @@ import java.util.stream.Collectors;
 public class BinaryFileController {
 
     private final GeneticAlgorithmService geneticAlgorithmService;
-    private final BinaryConverterService binaryConverterService;
     private final ResultStorageService resultStorageService;
+    private final FileValidationService fileValidationService;
 
     public BinaryFileController(GeneticAlgorithmService geneticAlgorithmService,
-                                BinaryConverterService binaryConverterService,
-                                ResultStorageService resultStorageService) {
+                                ResultStorageService resultStorageService,
+                                FileValidationService fileValidationService) {
         this.geneticAlgorithmService = geneticAlgorithmService;
-        this.binaryConverterService = binaryConverterService;
         this.resultStorageService = resultStorageService;
+        this.fileValidationService = fileValidationService;
     }
 
     @GetMapping("/")
@@ -64,28 +61,8 @@ public class BinaryFileController {
             }
 
             if ("file".equals(params.getMode())) {
-                if (file == null || file.isEmpty()) {
-                    throw new IllegalArgumentException("Debe seleccionar un archivo .txt");
-                }
-                if (!Objects.requireNonNull(file.getOriginalFilename()).toLowerCase().endsWith(".txt")) {
-                    throw new IllegalArgumentException("Solo se permiten archivos .txt");
-                }
-
-                binaryNumbers = new ArrayList<>();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        if (!line.trim().isEmpty()) {
-                            binaryNumbers.add(line.trim());
-                        }
-                    }
-                }
-
-                if (binaryNumbers.isEmpty()) {
-                    throw new IllegalArgumentException("El archivo no contiene números binarios");
-                }
-
-                binaryNumbers = binaryConverterService.normalizeAllBinaries(binaryNumbers, finalL);
+                // 🚨 Validación y lectura delegadas al servicio
+                binaryNumbers = fileValidationService.validateAndReadBinaries(file, finalL);
             }
 
             String sessionId = session.getId();
@@ -137,7 +114,6 @@ public class BinaryFileController {
                 }
             }).start();
 
-            // 🚨 Almacenar el contexto para el endpoint de estado
             resultStorageService.store(sessionId + "_context", context);
 
             return "redirect:/loading";
