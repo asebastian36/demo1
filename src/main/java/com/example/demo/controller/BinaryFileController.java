@@ -1,11 +1,11 @@
 package com.example.demo.controller;
 
-import com.example.demo.dto.AlgorithmParameters;
-import com.example.demo.genetic.algorithm.ExecutionContext;
-import com.example.demo.service.AsyncExecutionService;
-import com.example.demo.storage.ResultStorageService;
-import com.example.demo.validation.FileValidationService;
-import com.example.demo.preprocessing.ParameterPreprocessor;
+import com.example.demo.dto.GeneticAlgorithmRequest;
+import com.example.demo.execution.model.AlgorithmExecutionContext;
+import com.example.demo.execution.service.GeneticAlgorithmExecutor;
+import com.example.demo.io.validation.BinaryFileValidator;
+import com.example.demo.storage.ExecutionResultCache;
+import com.example.demo.preprocessing.AlgorithmParameterPreprocessor;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
@@ -18,15 +18,15 @@ import java.util.*;
 @Controller
 public class BinaryFileController {
 
-    private final AsyncExecutionService asyncExecutionService;
-    private final ResultStorageService resultStorageService;
-    private final FileValidationService fileValidationService;
-    private final ParameterPreprocessor parameterPreprocessor;
+    private final GeneticAlgorithmExecutor asyncExecutionService;
+    private final ExecutionResultCache resultStorageService;
+    private final BinaryFileValidator fileValidationService;
+    private final AlgorithmParameterPreprocessor parameterPreprocessor;
 
-    public BinaryFileController(AsyncExecutionService asyncExecutionService,
-                                ResultStorageService resultStorageService,
-                                FileValidationService fileValidationService,
-                                ParameterPreprocessor parameterPreprocessor) {
+    public BinaryFileController(GeneticAlgorithmExecutor asyncExecutionService,
+                                ExecutionResultCache resultStorageService,
+                                BinaryFileValidator fileValidationService,
+                                AlgorithmParameterPreprocessor parameterPreprocessor) {
         this.asyncExecutionService = asyncExecutionService;
         this.resultStorageService = resultStorageService;
         this.fileValidationService = fileValidationService;
@@ -39,7 +39,7 @@ public class BinaryFileController {
     }
 
     @PostMapping("/uploadTxt")
-    public String handleFileUpload(@Valid AlgorithmParameters params,
+    public String handleFileUpload(@Valid GeneticAlgorithmRequest params,
                                    BindingResult bindingResult,
                                    @RequestParam(required = false) MultipartFile file,
                                    HttpSession session,
@@ -65,7 +65,7 @@ public class BinaryFileController {
             }
 
             String sessionId = session.getId();
-            ExecutionContext context = new ExecutionContext(params.getNumGenerations());
+            AlgorithmExecutionContext context = new AlgorithmExecutionContext(params.getNumGenerations());
 
             asyncExecutionService.executeGeneticAlgorithm(
                     binaryNumbers,

@@ -1,10 +1,9 @@
 package com.example.demo.controller;
 
 import com.example.demo.entities.Individual;
-import com.example.demo.conversion.BinaryConverterService;
-import com.example.demo.visualization.ChartService;
+import com.example.demo.visualization.FitnessChartGenerator;
 import com.example.demo.genetic.function.CreditFitnessFunction;
-import com.example.demo.storage.ResultStorageService;
+import com.example.demo.storage.ExecutionResultCache;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,13 +16,13 @@ import java.util.stream.Collectors;
 @Controller
 public class ResultsController {
 
-    private final ChartService chartService;
-    private final BinaryConverterService binaryConverterService;
-    private final ResultStorageService resultStorageService;
+    private final FitnessChartGenerator chartService;
+    private final com.example.demo.conversion.BinaryToDecimalConverter binaryConverterService;
+    private final ExecutionResultCache resultStorageService;
 
-    public ResultsController(ChartService chartService,
-                             BinaryConverterService binaryConverterService,
-                             ResultStorageService resultStorageService) {
+    public ResultsController(FitnessChartGenerator chartService,
+                             com.example.demo.conversion.BinaryToDecimalConverter binaryConverterService,
+                             ExecutionResultCache resultStorageService) {
         this.chartService = chartService;
         this.binaryConverterService = binaryConverterService;
         this.resultStorageService = resultStorageService;

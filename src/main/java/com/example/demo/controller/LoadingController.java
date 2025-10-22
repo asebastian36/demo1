@@ -1,7 +1,6 @@
 package com.example.demo.controller;
 
-import com.example.demo.genetic.algorithm.ExecutionContext;
-import com.example.demo.storage.ResultStorageService;
+import com.example.demo.storage.ExecutionResultCache;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -12,9 +11,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 public class LoadingController {
 
-    private final ResultStorageService resultStorageService;
+    private final ExecutionResultCache resultStorageService;
 
-    public LoadingController(ResultStorageService resultStorageService) {
+    public LoadingController(ExecutionResultCache resultStorageService) {
         this.resultStorageService = resultStorageService;
     }
 
@@ -28,7 +27,7 @@ public class LoadingController {
     @GetMapping("/api/execution-status")
     @ResponseBody
     public ExecutionProgress getExecutionStatus(@RequestParam String sessionId) {
-        ExecutionContext context = resultStorageService.get(sessionId + "_context", ExecutionContext.class);
+        com.example.demo.genetic.algorithm.AlgorithmExecutionContext context = resultStorageService.get(sessionId + "_context", com.example.demo.genetic.algorithm.AlgorithmExecutionContext.class);
         if (context == null) {
             return new ExecutionProgress(true, 0, 0); // completado por defecto
         }

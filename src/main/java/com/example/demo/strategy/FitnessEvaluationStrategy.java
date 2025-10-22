@@ -1,7 +1,8 @@
 package com.example.demo.strategy;
 
-import com.example.demo.entities.Individual;
-import com.example.demo.genetic.function.FitnessFunction;
+
+import com.example.demo.execution.model.Individual;
+import com.example.demo.function.FitnessFunction;
 
 import java.util.List;
 

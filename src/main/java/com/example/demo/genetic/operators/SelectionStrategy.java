@@ -1,6 +1,7 @@
 package com.example.demo.genetic.operators;
 
-import com.example.demo.entities.Individual;
+import com.example.demo.execution.model.Individual;
+
 import java.util.List;
 
 /**
