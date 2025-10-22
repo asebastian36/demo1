@@ -102,9 +102,7 @@
             <p>Navega a través de las generaciones para ver la evolución de los individuos.</p>
 
             <div id="generation-viewer">
-
                 <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
-
                     <th:block th:if="${currentGeneration > 1}">
                         <a class="nav-button" th:href="@{/results(currentGeneration=${currentGeneration - 1})}">
                             &#9664; Anterior
@@ -139,7 +137,6 @@
                     <tbody>
                     <tr th:each="individual, rowStat : ${currentGenIndividuals}"
                         th:classappend="${rowStat.index == 0} ? 'best-individual-highlight'">
-
                         <td th:text="${rowStat.index + 1}"></td>
                         <td th:text="${individual.binary}"></td>
                         <td th:text="${binaryService.convertBinaryToInt(individual.binary)}"></td>

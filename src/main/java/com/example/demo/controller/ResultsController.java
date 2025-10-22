@@ -1,14 +1,14 @@
 package com.example.demo.controller;
 
-import com.example.demo.entities.Individual;
+import com.example.demo.execution.model.Individual;
+import com.example.demo.function.credit.CreditRiskFitnessFunction;
+import com.example.demo.io.conversion.BinaryToDecimalConverter;
 import com.example.demo.visualization.FitnessChartGenerator;
-import com.example.demo.genetic.function.CreditFitnessFunction;
 import com.example.demo.storage.ExecutionResultCache;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,16 +16,16 @@ import java.util.stream.Collectors;
 @Controller
 public class ResultsController {
 
-    private final FitnessChartGenerator chartService;
-    private final com.example.demo.conversion.BinaryToDecimalConverter binaryConverterService;
-    private final ExecutionResultCache resultStorageService;
+    private final FitnessChartGenerator chartGenerator;
+    private final BinaryToDecimalConverter binaryConverter;
+    private final ExecutionResultCache resultCache;
 
-    public ResultsController(FitnessChartGenerator chartService,
-                             com.example.demo.conversion.BinaryToDecimalConverter binaryConverterService,
-                             ExecutionResultCache resultStorageService) {
-        this.chartService = chartService;
-        this.binaryConverterService = binaryConverterService;
-        this.resultStorageService = resultStorageService;
+    public ResultsController(FitnessChartGenerator chartGenerator,
+                             BinaryToDecimalConverter binaryConverter,
+                             ExecutionResultCache resultCache) {
+        this.chartGenerator = chartGenerator;
+        this.binaryConverter = binaryConverter;
+        this.resultCache = resultCache;
     }
 
     @GetMapping("/results")
@@ -35,7 +35,7 @@ public class ResultsController {
         try {
             String sessionId = session.getId();
             @SuppressWarnings("unchecked")
-            Map<String, Object> results = resultStorageService.get(sessionId, Map.class);
+            Map<String, Object> results = resultCache.get(sessionId, Map.class);
 
             if (results == null) {
                 model.addAttribute("error", "No hay resultados disponibles. Por favor ejecute el algoritmo nuevamente.");
@@ -67,7 +67,7 @@ public class ResultsController {
                         .toList();
 
                 List<Map<String, Object>> top10Interpretations = top10.stream()
-                        .map(ind -> CreditFitnessFunction.getInterpretationDetails(ind.getBinary(), binaryConverterService))
+                        .map(ind -> CreditRiskFitnessFunction.getInterpretationDetails(ind.getBinary(), binaryConverter))
                         .collect(Collectors.toList());
 
                 model.addAttribute("top10Interpretations", top10Interpretations);
@@ -80,14 +80,15 @@ public class ResultsController {
             }
 
             // 🚨 Generar gráfica al renderizar
-            String chartImage = chartService.generateAdaptativeChart(fitnessByGeneration, functionType);
+            String chartImage = chartGenerator.generateAdaptativeChart(fitnessByGeneration, functionType);
             model.addAttribute("chartImage", chartImage);
             model.addAttribute("xmin", xmin);
             model.addAttribute("xmax", xmax);
             model.addAttribute("L", L);
             model.addAttribute("functionType", functionType);
             model.addAttribute("currentGeneration", currentGeneration);
-            model.addAttribute("binaryService", binaryConverterService);
+            // 👇 Nombre coherente con Thymeleaf: binaryService
+            model.addAttribute("binaryService", binaryConverter);
 
             return "results";
 
