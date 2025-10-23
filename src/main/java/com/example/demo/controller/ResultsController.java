@@ -79,7 +79,6 @@ public class ResultsController {
                 model.addAttribute("totalGenerations", totalGenerations);
             }
 
-            // 🚨 Generar gráfica al renderizar
             String chartImage = chartGenerator.generateAdaptativeChart(fitnessByGeneration, functionType);
             model.addAttribute("chartImage", chartImage);
             model.addAttribute("xmin", xmin);
@@ -87,7 +86,6 @@ public class ResultsController {
             model.addAttribute("L", L);
             model.addAttribute("functionType", functionType);
             model.addAttribute("currentGeneration", currentGeneration);
-            // 👇 Nombre coherente con Thymeleaf: binaryService
             model.addAttribute("binaryService", binaryConverter);
 
             return "results";

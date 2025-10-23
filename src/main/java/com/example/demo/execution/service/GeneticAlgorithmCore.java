@@ -70,9 +70,12 @@ public class GeneticAlgorithmCore {
             double crossoverRate,
             String populationSourceType) {
 
-        return runEvolutionWithStatus(fileBinaries, xmin, xmax, L, functionType, selectionType,
-                crossoverType, mutationType, populationSize, maxGenerations, mutationRatePerBit,
-                crossoverRate, populationSourceType, "default", null, 0.8);
+        return runEvolutionWithStatus(
+                fileBinaries, xmin, xmax, L, functionType, selectionType,
+                crossoverType, mutationType, populationSize, maxGenerations,
+                mutationRatePerBit, crossoverRate, populationSourceType,
+                "elitist", null, 0.8
+        );
     }
 
     public List<List<Individual>> runEvolutionWithStatus(

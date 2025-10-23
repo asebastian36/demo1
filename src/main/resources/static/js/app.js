@@ -1,38 +1,53 @@
-// Funcionalidad para el formulario de configuración (index.html)
-function toggleMode() {
-    const mode = document.getElementById('mode');
-    if (!mode) return;
-
+function toggleInputType() {
     const fileGroup = document.getElementById('file-group');
-    const randomParams = document.getElementById('random-params');
     const fileInput = document.getElementById('file');
+    const inputType = document.querySelector('input[name="inputType"]:checked').value;
 
-    if (mode.value === 'file') {
-        if (fileGroup) fileGroup.style.display = 'block';
-        if (randomParams) randomParams.style.display = 'none';
-        if (fileInput) fileInput.setAttribute('required', 'required');
+    if (inputType === 'file') {
+        fileGroup.style.display = 'block';
+        fileInput.setAttribute('required', 'required');
     } else {
-        if (fileGroup) fileGroup.style.display = 'none';
-        if (randomParams) randomParams.style.display = 'block';
-        if (fileInput) fileInput.removeAttribute('required');
+        fileGroup.style.display = 'none';
+        fileInput.removeAttribute('required');
     }
 }
 
-// Manejar Enter en input de salto de generación
-document.addEventListener('DOMContentLoaded', function() {
-    const modeSelect = document.getElementById('mode');
-    if (modeSelect) {
-        toggleMode();
-        modeSelect.addEventListener('change', toggleMode);
-    }
+function toggleExecutionMode() {
+    const strategiesGroup = document.getElementById('strategies-group');
+    const executionMode = document.querySelector('input[name="executionMode"]:checked').value;
 
-    const genInput = document.getElementById('genInput');
-    if (genInput) {
-        genInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const form = this.closest('form');
-                if (form) form.submit();
+    if (executionMode === 'elitist') {
+        strategiesGroup.style.display = 'none';
+    } else {
+        strategiesGroup.style.display = 'block';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar estados
+    toggleInputType();
+    toggleExecutionMode();
+
+    // Event listeners
+    const inputTypeRadios = document.querySelectorAll('input[name="inputType"]');
+    inputTypeRadios.forEach(radio => {
+        radio.addEventListener('change', toggleInputType);
+    });
+
+    const executionModeRadios = document.querySelectorAll('input[name="executionMode"]');
+    executionModeRadios.forEach(radio => {
+        radio.addEventListener('change', toggleExecutionMode);
+    });
+
+    // Manejar envío del formulario
+    const form = document.getElementById('configForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const executionMode = document.querySelector('input[name="executionMode"]:checked').value;
+            if (executionMode === 'elitist') {
+                this.action = '/executeElitist';
+            } else {
+                this.action = '/uploadTxt';
             }
         });
     }

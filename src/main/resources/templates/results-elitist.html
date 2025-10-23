@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultados Elitistas</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="container">
+    <h1>🔬 Resultados del Modo Elitista</h1>
+
+    <table class="table-container">
+        <thead>
+        <tr>
+            <th>Selección</th>
+            <th>Cruce</th>
+            <th>Mutación</th>
+            <th>Generaciones a convergencia</th>
+            <th>Mejor Fitness</th>
+            <th>Tiempo (ms)</th>
+            <th>Estado</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="result : ${results}">
+            <td th:text="${result.combination.selectionType}"></td>
+            <td th:text="${result.combination.crossoverType}"></td>
+            <td th:text="${result.combination.mutationType}"></td>
+            <td th:text="${result.generationsToConverge == -1 ? 'No convergió' : result.generationsToConverge}"></td>
+            <td th:text="${#numbers.formatDecimal(result.bestFitness, 1, 6)}"></td>
+            <td th:text="${result.executionTimeMs}"></td>
+            <td>
+                <span th:if="${result.errorMessage == null}" style="color: green;">✅ Éxito</span>
+                <span th:if="${result.errorMessage != null}"
+                      th:title="${result.errorMessage}"
+                      style="color: red; cursor: help;">❌ Error</span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Gráficas de convergencia</h2>
+    <div th:each="result : ${results}" style="margin-bottom: 30px; border: 1px solid #ddd; padding: 10px;">
+        <h3 th:text="${result.combination}"></h3>
+        <img th:if="${result.chartImage != 'error'}"
+             th:src="${result.chartImage}"
+             style="max-width: 100%; height: auto;"/>
+        <div th:if="${result.errorMessage != null}"
+             style="color: red; background: #ffe6e6; padding: 10px; border-radius: 4px; margin-top: 10px;">
+            <strong>Error:</strong> <span th:text="${result.errorMessage}"></span>
+        </div>
+    </div>
+
+    <a href="/" class="back-button">← Ejecutar nuevo algoritmo</a>
+</div>
+</body>
+</html>

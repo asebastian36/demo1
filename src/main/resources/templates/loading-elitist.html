@@ -1,0 +1,91 @@
+<!-- src/main/resources/templates/loading-elitist.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procesando Modo Elitista</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <style>
+        .loading-container {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 30px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            font-size: 18px;
+            font-weight: 500;
+            color: #2c3e50;
+            margin: 20px 0;
+        }
+
+        .progress-info {
+            background: #e8f4fc;
+            padding: 15px;
+            border-radius: 6px;
+            display: inline-block;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <h1>🔬 Ejecutando Modo Elitista</h1>
+
+        <div class="progress-info">
+            <div class="status-message" id="statusMessage">Iniciando ejecución...</div>
+            <div id="progressText">Completado: <span id="completed">0</span> de <span id="total">0</span></div>
+        </div>
+
+        <p>Se están ejecutando todas las combinaciones de operadores genéticos. Este proceso puede tardar varios minutos.</p>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('sessionId') || 'default';
+    const statusMessage = document.getElementById('statusMessage');
+    const completedSpan = document.getElementById('completed');
+    const totalSpan = document.getElementById('total');
+
+    function checkStatus() {
+        fetch(`/api/elitist-status?sessionId=${sessionId}`)
+            .then(response => response.json())
+            .then(data => {
+                completedSpan.textContent = data.completed;
+                totalSpan.textContent = data.total;
+                statusMessage.textContent = `Procesando combinaciones...`;
+
+                if (data.completedAll) {
+                    window.location.href = '/results/elitist?sessionId=' + sessionId;
+                } else {
+                    setTimeout(checkStatus, 2000);
+                }
+            })
+            .catch(error => {
+                console.error('Error checking status:', error);
+                setTimeout(checkStatus, 5000);
+            });
+    }
+
+    checkStatus();
+</script>
+</body>
+</html>

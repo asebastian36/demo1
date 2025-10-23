@@ -6,8 +6,13 @@ import java.util.List;
 @GreaterThanXmin
 public class GeneticAlgorithmRequest {
 
-    @NotNull(message = "El modo de entrada es requerido")
-    private String mode;
+    @NotNull(message = "Tipo de entrada es requerido")
+    @Pattern(regexp = "file|random", message = "Tipo de entrada inválido")
+    private String inputType;
+
+    @NotNull(message = "Modo de ejecución es requerido")
+    @Pattern(regexp = "normal|elitist", message = "Modo de ejecución inválido")
+    private String executionMode;
 
     private List<String> fileBinaries;
 
@@ -23,19 +28,15 @@ public class GeneticAlgorithmRequest {
 
     @NotNull(message = "L es requerido")
     @Min(value = 1, message = "L debe ser al menos 1")
-    @Max(value = 64, message = "L no puede ser mayor que 64") // Aumentado para permitir L=34
+    @Max(value = 64, message = "L no puede ser mayor que 64")
     private Integer L;
 
     @NotBlank(message = "El tipo de función es requerido")
-    private String functionType = "function5";
+    private String functionType = "quartic";
 
-    @NotBlank(message = "El tipo de selección es requerido")
+    // Los campos de estrategia solo se usan en modo normal
     private String selectionType = "roulette";
-
-    @NotBlank(message = "El tipo de cruce es requerido")
     private String crossoverType = "single";
-
-    @NotBlank(message = "El tipo de mutación es requerido")
     private String mutationType = "simple";
 
     @NotNull(message = "El tamaño de población es requerido")
@@ -64,8 +65,11 @@ public class GeneticAlgorithmRequest {
     private Double convergenceThreshold = 0.8;
 
     // Getters y setters
-    public String getMode() { return mode; }
-    public void setMode(String mode) { this.mode = mode; }
+    public String getInputType() { return inputType; }
+    public void setInputType(String inputType) { this.inputType = inputType; }
+
+    public String getExecutionMode() { return executionMode; }
+    public void setExecutionMode(String executionMode) { this.executionMode = executionMode; }
 
     public List<String> getFileBinaries() { return fileBinaries; }
     public void setFileBinaries(List<String> fileBinaries) { this.fileBinaries = fileBinaries; }

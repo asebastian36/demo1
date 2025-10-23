@@ -56,12 +56,11 @@ public class BinaryFileController {
         try {
             parameterPreprocessor.preprocess(params);
 
+            String actualPopulationMode = params.getInputType();
             List<String> binaryNumbers = null;
-            Integer finalL = params.getL();
-            String functionType = params.getFunctionType();
 
-            if ("file".equals(params.getMode())) {
-                binaryNumbers = fileValidationService.validateAndReadBinaries(file, finalL);
+            if ("file".equals(actualPopulationMode)) {
+                binaryNumbers = fileValidationService.validateAndReadBinaries(file, params.getL());
             }
 
             String sessionId = session.getId();
@@ -71,8 +70,8 @@ public class BinaryFileController {
                     binaryNumbers,
                     params.getXmin(),
                     params.getXmax(),
-                    finalL,
-                    functionType,
+                    params.getL(),
+                    params.getFunctionType(),
                     params.getSelectionType(),
                     params.getCrossoverType(),
                     params.getMutationType(),
@@ -80,7 +79,7 @@ public class BinaryFileController {
                     params.getNumGenerations(),
                     params.getMutationRate(),
                     params.getCrossoverRate(),
-                    params.getMode(),
+                    actualPopulationMode,
                     sessionId,
                     context,
                     params.getConvergenceThreshold()
