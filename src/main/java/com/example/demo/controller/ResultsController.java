@@ -1,10 +1,12 @@
 package com.example.demo.controller;
 
 import com.example.demo.execution.model.Individual;
-import com.example.demo.function.credit.CreditRiskFitnessFunction;
+import com.example.demo.function.ChromosomeBasedFitnessFunction;
+import com.example.demo.function.FitnessFunction;
 import com.example.demo.io.conversion.BinaryToDecimalConverter;
-import com.example.demo.visualization.FitnessChartGenerator;
+import com.example.demo.io.conversion.FitnessEvaluator;
 import com.example.demo.storage.ExecutionResultCache;
+import com.example.demo.visualization.FitnessChartGenerator;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,13 +19,16 @@ import java.util.stream.Collectors;
 public class ResultsController {
 
     private final FitnessChartGenerator chartGenerator;
+    private final FitnessEvaluator fitnessEvaluator; // 👈 Necesario para getFunction()
     private final BinaryToDecimalConverter binaryConverter;
     private final ExecutionResultCache resultCache;
 
     public ResultsController(FitnessChartGenerator chartGenerator,
+                             FitnessEvaluator fitnessEvaluator, // 👈 Inyectado
                              BinaryToDecimalConverter binaryConverter,
                              ExecutionResultCache resultCache) {
         this.chartGenerator = chartGenerator;
+        this.fitnessEvaluator = fitnessEvaluator;
         this.binaryConverter = binaryConverter;
         this.resultCache = resultCache;
     }
@@ -60,21 +65,28 @@ public class ResultsController {
             currentGeneration = Math.max(1, Math.min(currentGeneration, totalGenerations));
             int generationIndex = currentGeneration - 1;
 
-            if ("credit".equals(functionType)) {
+            boolean isChromosomeBased = "credit".equals(functionType) || "consumo".equals(functionType);
+
+            if (isChromosomeBased) {
                 List<Individual> finalGeneration = generations.getLast();
                 List<Individual> top10 = finalGeneration.stream()
                         .limit(10)
                         .toList();
 
+                FitnessFunction function = fitnessEvaluator.getFunction(functionType);
+                if (!(function instanceof ChromosomeBasedFitnessFunction chromosomeFunction)) {
+                    throw new IllegalStateException("Función no compatible con decodificación de cromosoma");
+                }
+
                 List<Map<String, Object>> top10Interpretations = top10.stream()
-                        .map(ind -> CreditRiskFitnessFunction.getInterpretationDetails(ind.getBinary(), binaryConverter))
+                        .map(ind -> chromosomeFunction.decodeAndInterpret(ind.getBinary(), binaryConverter))
                         .collect(Collectors.toList());
 
                 model.addAttribute("top10Interpretations", top10Interpretations);
-                model.addAttribute("isCreditFunction", true);
+                model.addAttribute("isChromosomeBasedFunction", true);
                 model.addAttribute("bestIndividual", finalGeneration.getFirst());
             } else {
-                model.addAttribute("isCreditFunction", false);
+                model.addAttribute("isChromosomeBasedFunction", false);
                 model.addAttribute("currentGenIndividuals", generations.get(generationIndex));
                 model.addAttribute("totalGenerations", totalGenerations);
             }

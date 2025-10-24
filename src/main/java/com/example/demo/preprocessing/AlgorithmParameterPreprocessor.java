@@ -1,3 +1,4 @@
+// src/main/java/com/example/demo/preprocessing/AlgorithmParameterPreprocessor.java
 package com.example.demo.preprocessing;
 
 import com.example.demo.dto.GeneticAlgorithmRequest;
@@ -9,9 +10,9 @@ public class AlgorithmParameterPreprocessor {
     public void preprocess(GeneticAlgorithmRequest params) {
         if ("credit".equals(params.getFunctionType())) {
             params.setL(34);
-            // Opcional: ajustar xmin/xmax si son irrelevantes para crédito
-            // params.setXmin(0.0);
-            // params.setXmax(1.0);
+        } else if ("consumo".equals(params.getFunctionType())) {
+            params.setL(30);
         }
+        // Para funciones matemáticas, L se mantiene como está
     }
 }

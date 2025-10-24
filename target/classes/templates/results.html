@@ -5,7 +5,7 @@
     <title>Resultados del Algoritmo Genético</title>
     <link rel="stylesheet" th:href="@{/css/styles.css}">
     <style>
-        /* Estilos específicos para el modo Crédito (Lista) */
+        /* Estilos específicos para funciones basadas en cromosoma */
         .results-list { list-style: none; padding: 0; }
         .results-list li {
             padding: 12px 15px;
@@ -17,13 +17,13 @@
             flex-wrap: wrap;
             align-items: center;
         }
-        .risk-low { border-left: 5px solid #27ae60; background-color: #e6ffe6; }
-        .risk-high { border-left: 5px solid #c0392b; background-color: #ffe6e6; }
-        .risk-mid { border-left: 5px solid #f39c12; background-color: #fff8e6; }
+        .risk-low, .satisfaction-high { border-left: 5px solid #27ae60; background-color: #e6ffe6; }
+        .risk-high, .satisfaction-low { border-left: 5px solid #c0392b; background-color: #ffe6e6; }
+        .risk-mid, .satisfaction-medium { border-left: 5px solid #f39c12; background-color: #fff8e6; }
         .label { font-weight: bold; margin-right: 5px; color: #34495e; }
         .value { margin-right: 15px; }
 
-        /* Estilos específicos para el modo f(x) (Tabla y Gráfica) */
+        /* Estilos para modo f(x) */
         #generation-table th, #generation-table td { text-align: left; padding: 8px; border: 1px solid #ddd; }
         .best-individual-highlight { background-color: #dff0d8 !important; font-weight: bold; }
         #generation-table tbody tr:hover { background-color: #f5f5f5; }
@@ -46,10 +46,10 @@
             <p th:if="${bestIndividual}">Mejor Fitness Encontrado: <span th:text="${#numbers.formatDecimal(bestIndividual.adaptative, 1, 4)}"></span></p>
         </div>
 
-        <th:block th:if="${isCreditFunction}">
+        <th:block th:if="${isChromosomeBasedFunction}">
             <div class="generation-info">
-                <h2>🏆 Top 10 Perfiles de Cliente</h2>
-                <p>Decodificación simple de las variables clave y la conclusión de riesgo para los individuos más aptos.</p>
+                <h2>🏆 Top 10 Mejores Individuos</h2>
+                <p>Decodificación de las variables clave y la conclusión para los individuos más aptos.</p>
             </div>
 
             <ul class="results-list">
@@ -57,22 +57,23 @@
 
                     <li th:with="conclusion=${interpretation['Interpretación']},
                                       riskClass=
-                                        (${#strings.contains(conclusion, 'Riesgo BAJO') or #strings.contains(conclusion, 'Riesgo MUY BAJO')} ? 'risk-low' :
-                                        (${#strings.contains(conclusion, 'Riesgo MEDIO')} ? 'risk-mid' : 'risk-high'))"
+                                        (${#strings.contains(conclusion, 'MUY BAJO') or #strings.contains(conclusion, 'BAJO') or #strings.contains(conclusion, 'MUY ALTA') or #strings.contains(conclusion, 'ALTA')} ? 'risk-low' :
+                                        (${#strings.contains(conclusion, 'MEDIO') or #strings.contains(conclusion, 'MEDIA')} ? 'risk-mid' : 'risk-high'))"
                         th:class="${riskClass}">
 
                         <span class="label">#<span th:text="${index.index + 1}"></span>:</span>
 
                         <th:block th:each="entry : ${interpretation}"
-                                  th:if="${entry.key != 'Fitness Total' and entry.key != 'Interpretación'}">
+                                  th:if="${entry.key != 'Satisfacción Total' and entry.key != 'Fitness Total' and entry.key != 'Interpretación'}">
                             <span class="label" th:text="${entry.key} + ':'"></span>
                             <span class="value" th:text="${entry.value}"></span>
                         </th:block>
 
                         <span style="margin-left: auto;">
                                 <span class="label">| Fitness:</span>
-                                <span class="value" th:text="${interpretation['Fitness Total']}"></span>
-                                <span class="label">| Riesgo:</span>
+                                <span class="value"
+                                      th:text="${interpretation['Satisfacción Total'] != null ? interpretation['Satisfacción Total'] : interpretation['Fitness Total']}"></span>
+                                <span class="label">| Evaluación:</span>
                                 <span class="value" th:text="${interpretation['Interpretación']}" style="font-weight: bold;"></span>
                             </span>
                     </li>
@@ -80,7 +81,7 @@
             </ul>
         </th:block>
 
-        <th:block th:if="${!isCreditFunction}">
+        <th:block th:if="${!isChromosomeBasedFunction}">
             <div class="generation-info">
                 <h3>📋 Parámetros utilizados</h3>
                 <p>
