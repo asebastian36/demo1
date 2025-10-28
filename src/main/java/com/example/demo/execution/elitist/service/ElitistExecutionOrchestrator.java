@@ -11,15 +11,19 @@ import com.example.demo.genetic.operators.SelectionStrategy;
 import com.example.demo.io.conversion.FitnessEvaluator;
 import com.example.demo.metrics.AlgorithmMetricsService;
 import com.example.demo.visualization.FitnessChartGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 @Service
 public class ElitistExecutionOrchestrator {
+
+    private static final Logger log = LoggerFactory.getLogger(ElitistExecutionOrchestrator.class);
 
     private final GeneticAlgorithmCore algorithmCore;
     private final FitnessChartGenerator chartGenerator;
@@ -134,14 +138,30 @@ public class ElitistExecutionOrchestrator {
                     convergenceThreshold
             );
 
+            // 👇 LOGS DE DIAGNÓSTICO PASO 1
+            log.info("Combinación {} - Generaciones: {}", combinationId, generations.size());
+            if (!generations.isEmpty()) {
+                log.info("Combinación {} - Generación 1 - Individuos: {}", combinationId, generations.getFirst().size());
+                if (!generations.getFirst().isEmpty()) {
+                    log.info("Combinación {} - Primer fitness: {}", combinationId, generations.getFirst().getFirst().getAdaptative());
+                }
+            }
+
             FitnessFunction function = fitnessEvaluator.getFunction(functionType);
             double optimalValue = function.getOptimalValue();
             int generationsToConverge = metricsService.findGeneration90Percent(generations, optimalValue);
-            double bestFitness = generations.getLast().getFirst().getAdaptative();
+            double bestFitness = generations.isEmpty() ? 0.0 : generations.getLast().getFirst().getAdaptative();
 
+            // 👇 CONSTRUCCIÓN DE fitnessByGeneration CON LOGS
             List<List<Double>> fitnessByGeneration = generations.stream()
-                    .map(gen -> gen.stream().map(Individual::getAdaptative).toList())
-                    .toList();
+                    .map(gen -> gen.stream().map(Individual::getAdaptative).collect(Collectors.toList()))
+                    .collect(Collectors.toList());
+
+            log.info("Combinación {} - fitnessByGeneration size: {}", combinationId, fitnessByGeneration.size());
+            if (!fitnessByGeneration.isEmpty() && !fitnessByGeneration.getFirst().isEmpty()) {
+                log.info("Combinación {} - fitnessByGeneration[0][0]: {}", combinationId, fitnessByGeneration.getFirst().getFirst());
+            }
+
             String chartImage = chartGenerator.generateAdaptativeChart(fitnessByGeneration, functionType);
 
             long time = System.currentTimeMillis() - start;

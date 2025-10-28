@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/preprocessing/AlgorithmParameterPreprocessor.java
 package com.example.demo.preprocessing;
 
 import com.example.demo.dto.GeneticAlgorithmRequest;

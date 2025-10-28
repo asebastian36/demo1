@@ -1,3 +1,4 @@
+// src/main/resources/static/js/app.js
 function toggleInputType() {
     const fileGroup = document.getElementById('file-group');
     const fileInput = document.getElementById('file');
@@ -43,11 +44,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('configForm');
     if (form) {
         form.addEventListener('submit', function(e) {
-            const executionMode = document.querySelector('input[name="executionMode"]:checked').value;
+            const executionModeElement = document.querySelector('input[name="executionMode"]:checked');
+            if (!executionModeElement) {
+                console.error("No se encontró executionMode seleccionado");
+                return;
+            }
+
+            const executionMode = executionModeElement.value;
+            console.log("Modo de ejecución detectado:", executionMode); // Para debug
+
             if (executionMode === 'elitist') {
                 this.action = '/executeElitist';
             } else {
                 this.action = '/uploadTxt';
+            }
+        });
+    }
+
+    // Manejar Enter en input de salto de generación
+    const genInput = document.getElementById('genInput');
+    if (genInput) {
+        genInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const form = this.closest('form');
+                if (form) form.submit();
             }
         });
     }

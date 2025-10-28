@@ -2,14 +2,13 @@ package com.example.demo.execution.strategy.mutation;
 
 import com.example.demo.execution.model.Individual;
 import com.example.demo.function.FitnessFunction;
-import com.example.demo.function.credit.CreditRiskFitnessFunction;
+import com.example.demo.function.ChromosomeBasedFitnessFunction;
 import com.example.demo.io.conversion.BinaryToDecimalConverter;
 import com.example.demo.io.conversion.DecimalToRealConverter;
 import com.example.demo.io.conversion.FitnessEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -67,13 +66,14 @@ public class MutationService {
                 double real;
                 double adaptative;
 
-                if ("credit".equals(functionType)) {
+                if ("credit".equals(functionType) || "consumo".equals(functionType)) {
                     FitnessFunction function = fitnessEvaluator.getFunction(functionType);
-                    if (!(function instanceof CreditRiskFitnessFunction)) {
-                        throw new IllegalStateException("Función de crédito no disponible para re-evaluación.");
+                    if (function instanceof ChromosomeBasedFitnessFunction) {
+                        adaptative = function.evaluate(mutatedBinary);
+                        real = 0.0;
+                    } else {
+                        throw new IllegalStateException("Función no compatible con evaluación de cromosoma");
                     }
-                    adaptative = function.evaluate(mutatedBinary);
-                    real = 0.0;
                 } else {
                     long decimal = binaryConverter.convertBinaryToInt(mutatedBinary);
                     real = realConverter.toRealSingle(decimal, xmin, xmax, L);

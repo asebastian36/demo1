@@ -3,13 +3,15 @@ package com.example.demo.execution.service;
 import com.example.demo.execution.model.Individual;
 import com.example.demo.execution.strategy.crossover.CrossoverService;
 import com.example.demo.execution.strategy.mutation.MutationService;
+import com.example.demo.execution.strategy.selection.TournamentSelection;
+import com.example.demo.function.ChromosomeBasedFitnessFunction;
 import com.example.demo.function.FitnessFunction;
 import com.example.demo.genetic.operators.SelectionStrategy;
 import com.example.demo.io.conversion.BinaryToDecimalConverter;
 import com.example.demo.io.conversion.DecimalToRealConverter;
 import com.example.demo.io.conversion.FitnessEvaluator;
-import com.example.demo.genetic.population.PopulationSource;
 import com.example.demo.metrics.AlgorithmMetricsService;
+import com.example.demo.genetic.population.PopulationSource;
 import com.example.demo.strategy.FitnessEvaluationStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,34 +57,11 @@ public class GeneticAlgorithmCore {
         this.evaluationStrategies = evaluationStrategies;
     }
 
-    public List<List<Individual>> runEvolution(
-            List<String> fileBinaries,
-            double xmin,
-            double xmax,
-            int L,
-            String functionType,
-            String selectionType,
-            String crossoverType,
-            String mutationType,
-            int populationSize,
-            int maxGenerations,
-            double mutationRatePerBit,
-            double crossoverRate,
-            String populationSourceType) {
-
-        return runEvolutionWithStatus(
-                fileBinaries, xmin, xmax, L, functionType, selectionType,
-                crossoverType, mutationType, populationSize, maxGenerations,
-                mutationRatePerBit, crossoverRate, populationSourceType,
-                "elitist", null, 0.8
-        );
-    }
-
     public List<List<Individual>> runEvolutionWithStatus(
             List<String> fileBinaries,
             double xmin,
             double xmax,
-            int finalL,
+            int L,
             String functionType,
             String selectionType,
             String crossoverType,
@@ -98,10 +77,8 @@ public class GeneticAlgorithmCore {
 
         Instant start = Instant.now();
 
-        log.info("🚀 Iniciando algoritmo genético - Función: {}, Generaciones: {}, Población estimada: {}",
-                fitnessEvaluator.getFunction(functionType).getName(),
-                maxGenerations,
-                "file".equals(populationSourceType) ? (fileBinaries != null ? fileBinaries.size() : 0) : populationSize);
+        log.info("InParameteretros: función={}, L={}, modo={}, xmin={}, xmax={}",
+                functionType, L, populationSourceType, xmin, xmax);
 
         PopulationSource populationSource = populationSources.get(populationSourceType);
         if (populationSource == null) {
@@ -117,9 +94,9 @@ public class GeneticAlgorithmCore {
             ((com.example.demo.genetic.population.RandomPopulationSource) populationSource).setPopulationSize(populationSize);
         }
 
-        List<String> currentBinaries = populationSource.generatePopulation(finalL);
+        List<String> currentBinaries = populationSource.generatePopulation(L);
         log.info("→ Población inicial generada ({}): {} individuos (L={})",
-                populationSource.getName(), currentBinaries.size(), finalL);
+                populationSource.getName(), currentBinaries.size(), L);
 
         mutationService.setBounds(xmin, xmax);
 
@@ -149,7 +126,7 @@ public class GeneticAlgorithmCore {
             }
 
             List<Individual> generation = strategy.evaluatePopulation(
-                    currentBinaries, xmin, xmax, finalL, gen, function
+                    currentBinaries, xmin, xmax, L, gen, function
             );
             generations.add(generation);
 
@@ -172,8 +149,8 @@ public class GeneticAlgorithmCore {
                     throw new IllegalArgumentException("Tipo de selección desconocido: " + selectionType);
                 }
 
-                if ("tournament".equals(selectionType) && selection instanceof com.example.demo.execution.strategy.selection.TournamentSelection) {
-                    ((com.example.demo.execution.strategy.selection.TournamentSelection) selection).configure(xmin, xmax, finalL, functionType);
+                if ("tournament".equals(selectionType) && selection instanceof TournamentSelection) {
+                    ((TournamentSelection) selection).configure(xmin, xmax, L, functionType);
                 }
 
                 List<Individual[]> parentPairs = selection.selectPairs(generation, numPairs);
@@ -186,11 +163,11 @@ public class GeneticAlgorithmCore {
                     Individual p1 = pair[0];
                     Individual p2 = pair[1];
 
-                    String bin1 = binaryConverter.normalizeBinary(p1.getBinary(), finalL);
-                    String bin2 = binaryConverter.normalizeBinary(p2.getBinary(), finalL);
+                    String bin1 = binaryConverter.normalizeBinary(p1.getBinary(), L);
+                    String bin2 = binaryConverter.normalizeBinary(p2.getBinary(), L);
 
                     var result = crossoverService.crossoverWithLogging(
-                            bin1, bin2, crossoverType, i + 1, finalL, xmin, xmax, functionType);
+                            bin1, bin2, crossoverType, i + 1, L, xmin, xmax, functionType);
                     if (Math.random() < crossoverRate) {
                         crossoverCount++;
                     }
@@ -200,13 +177,26 @@ public class GeneticAlgorithmCore {
                     for (String childBinary : children) {
                         double adaptative = 0.0;
                         double real = 0.0;
+                        boolean isChromosomeBased = "credit".equals(functionType) || "consumo".equals(functionType);
 
-                        if ("credit".equals(functionType)) {
-                            adaptative = function.evaluate(childBinary);
-                            real = 0.0;
+
+                        if (isChromosomeBased) {
+                            if (function instanceof ChromosomeBasedFitnessFunction chromosomeFunction) {
+                                // Flujo correcto: usar el valor que ya es adaptativo y final
+                                adaptative = chromosomeFunction.evaluate(childBinary);
+                                real = 0.0;
+
+                                // LOG DE DIAGNÓSTICO
+                                log.debug("Evaluando cromosoma: {} → adaptative={}", childBinary, adaptative);
+                            } else {
+                                // Flujo de inconsistencia: función etiquetada como cromosoma, pero sin interfaz
+                                throw new IllegalStateException("La función '" + functionType +
+                                        "' está marcada como basada en cromosoma pero no implementa ChromosomeBasedFitnessFunction.");
+                            }
                         } else {
+                            // Flujo normal para funciones REALES (no basadas en cromosoma)
                             long decimal = binaryConverter.convertBinaryToInt(childBinary);
-                            real = realConverter.toRealSingle(decimal, xmin, xmax, finalL);
+                            real = realConverter.toRealSingle(decimal, xmin, xmax, L);
                             adaptative = fitnessEvaluator.toAdaptiveSingle(real, functionType);
                         }
 
@@ -214,7 +204,7 @@ public class GeneticAlgorithmCore {
                     }
                 }
 
-                mutationService.applyToGenerationWithLogging(offspring, mutationRatePerBit, finalL, gen + 1, mutationType, functionType);
+                mutationService.applyToGenerationWithLogging(offspring, mutationRatePerBit, L, gen + 1, mutationType, functionType);
 
                 if (offspring.size() > currentPopulationSize) {
                     offspring = new ArrayList<>(offspring.subList(0, currentPopulationSize));

@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/execution/elitist/model/ElitistExecutionContext.java
 package com.example.demo.execution.elitist.model;
 
 import java.util.concurrent.ConcurrentHashMap;

@@ -1,31 +1,17 @@
 package com.example.demo.io.conversion;
 
+import com.example.demo.function.ChromosomeBasedFitnessFunction;
 import com.example.demo.function.FitnessFunction;
-import org.slf4j.*;
 import org.springframework.stereotype.Service;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 @Service
 public class FitnessEvaluator {
 
-    private static final Logger log = LoggerFactory.getLogger(FitnessEvaluator.class);
     private final Map<String, FitnessFunction> fitnessFunctions;
 
     public FitnessEvaluator(Map<String, FitnessFunction> fitnessFunctions) {
         this.fitnessFunctions = fitnessFunctions;
-    }
-
-    public List<Double> toAdaptive(List<Double> realValues, String functionType) {
-        FitnessFunction function = fitnessFunctions.get(functionType);
-        if (function == null) {
-            throw new IllegalArgumentException("Función desconocida: " + functionType);
-        }
-
-        log.debug("Aplicando función adaptativa: {} a {} valores", function.getName(), realValues.size());
-        return realValues.stream()
-                .map(function::evaluate)
-                .collect(Collectors.toList());
     }
 
     public double toAdaptiveSingle(double x, String functionType) {
@@ -33,10 +19,15 @@ public class FitnessEvaluator {
         if (function == null) {
             throw new IllegalArgumentException("Función desconocida: " + functionType);
         }
+
+        // Si la función es basada en cromosoma, devolver 0.0
+        if (function instanceof ChromosomeBasedFitnessFunction) {
+            return 0.0; // O lanzar una excepción más específica si prefieres
+        }
+
         return function.evaluate(x);
     }
 
-    // Método para obtener la función (útil para convergencia)
     public FitnessFunction getFunction(String functionType) {
         return fitnessFunctions.get(functionType);
     }

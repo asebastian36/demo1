@@ -1,7 +1,7 @@
 package com.example.demo.execution.strategy.crossover;
 
 import com.example.demo.function.FitnessFunction;
-import com.example.demo.function.credit.CreditRiskFitnessFunction;
+import com.example.demo.function.ChromosomeBasedFitnessFunction;
 import com.example.demo.io.conversion.BinaryToDecimalConverter;
 import com.example.demo.io.conversion.DecimalToRealConverter;
 import com.example.demo.io.conversion.FitnessEvaluator;
@@ -80,12 +80,13 @@ public class CrossoverService {
 
     private double calculateFitness(String binary, double xmin, double xmax, int L, String functionType) {
         try {
-            if ("credit".equals(functionType)) {
+            if ("credit".equals(functionType) || "consumo".equals(functionType)) {
                 FitnessFunction function = fitnessEvaluator.getFunction(functionType);
-                if (function instanceof CreditRiskFitnessFunction) {
+                if (function instanceof ChromosomeBasedFitnessFunction) {
                     return function.evaluate(binary);
                 }
             }
+
             long decimal = binaryConverter.convertBinaryToInt(binary);
             double real = realConverter.toRealSingle(decimal, xmin, xmax, L);
             return fitnessEvaluator.toAdaptiveSingle(real, functionType);

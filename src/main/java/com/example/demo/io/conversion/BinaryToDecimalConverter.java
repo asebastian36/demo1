@@ -16,7 +16,6 @@ public class BinaryToDecimalConverter {
                 .collect(Collectors.toList());
     }
 
-    // 🚨 CAMBIO DE int a long
     public long convertBinaryToInt(String binaryString) {
         String clean = binaryString.trim();
         if (!clean.matches("[01]+")) {

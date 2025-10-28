@@ -38,7 +38,8 @@ public class RealValueFitnessStrategy implements FitnessEvaluationStrategy {
 
     @Override
     public boolean supports(String functionType) {
-        return !"credit".equals(functionType);
+        // Excluir 'credit' Y 'consumo'
+        return !"credit".equals(functionType) && !"consumo".equals(functionType);
     }
 
     @Override

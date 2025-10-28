@@ -106,24 +106,42 @@ public class AlgorithmMetricsService {
      * @param function función objetivo
      */
     public void logConvergenceResults(List<Individual> finalGeneration, FitnessFunction function) {
+
+        // Determinar si es una función basada en cromosoma
+        String functionName = function.getName();
+        boolean isChromosomeBased = functionName.contains("Preferencias de Consumo") || functionName.contains("Crédito");
+
+        // Si es una función basada en cromosoma (multivariada), no evaluamos la métrica de convergencia en X.
+        if (isChromosomeBased) {
+            // Se asume que el algoritmo ya se detuvo por el criterio de fitness (checkConvergence).
+            log.info("");
+            log.info("📊 RESULTADO FINAL DE CONVERGENCIA (Función Multivariada/Cromosoma):");
+            log.info("   → La convergencia se evalúa por el umbral de Fitness (90%)");
+            return;
+        }
+
+
+        // Lógica original para funciones de valor real f(x)
         double targetX = function.getTargetX();
 
         long countConverged = finalGeneration.stream()
+                // La lógica original chequea convergencia en la variable Real (ind.getReal() ≈ targetX)
                 .filter(ind -> Math.abs(Math.abs(ind.getReal()) - targetX) < 0.1)
                 .count();
 
         double percentage = (double) countConverged / finalGeneration.size() * 100;
+        String formattedTargetX = String.format("%.1f", targetX);
+        String formattedPercentage = String.format("%.2f", percentage);
 
-        // Logs corregidos usando {} y String.format para el formato decimal
         log.info("");
         log.info("📊 RESULTADO FINAL DE CONVERGENCIA:");
-        log.info("   → Individuos en x ≈ ±{}: {} de {}", String.format("%.1f", targetX), countConverged, finalGeneration.size());
-        log.info("   → Porcentaje: {}%", String.format("%.2f", percentage));
+        log.info("   → Individuos en x ≈ ±{}: {} de {}", formattedTargetX, countConverged, finalGeneration.size());
+        log.info("   → Porcentaje: {}%", formattedPercentage);
 
         if (percentage >= 80) {
-            log.info("🎉 ✅ ¡CONVERGENCIA EXITOSA! (≥80%% en x ≈ ±{})", String.format("%.1f", targetX));
+            log.info("🎉 ✅ ¡CONVERGENCIA EXITOSA! (≥80% en x ≈ ±{})", formattedTargetX);
         } else {
-            log.warn("⚠️ ❌ Convergencia insuficiente (<80%% en x ≈ ±{})", String.format("%.1f", targetX));
+            log.warn("⚠️ ❌ Convergencia insuficiente (<80% en x ≈ ±{})", formattedTargetX);
         }
     }
 
@@ -139,18 +157,22 @@ public class AlgorithmMetricsService {
     public void logComparisonMetrics(int generation90Percent, int numGenerations,
                                      double threshold90, double optimalValue, double avgDiversity) {
 
-        // Logs corregidos usando {} y String.format para el formato decimal
+        String formattedThreshold90 = String.format("%.2f", threshold90);
+        String formattedOptimalValue = String.format("%.2f", optimalValue);
+        String formattedAvgDiversity = String.format("%.4f", avgDiversity);
+
+        // Logs corregidos
         if (generation90Percent != -1) {
             log.info("📊 MÉTRICA DE COMPARACIÓN:");
-            log.info("   → Convergencia al 90%% del óptimo en generación: {}", generation90Percent);
-            log.info("   → Umbral del 90%%: {} (óptimo: {})", String.format("%.2f", threshold90), String.format("%.2f", optimalValue));
+            log.info("   → Convergencia al 90% del óptimo en generación: {}", generation90Percent);
+            log.info("   → Umbral del 90%: {} (óptimo: {})", formattedThreshold90, formattedOptimalValue);
         } else {
             log.info("📊 MÉTRICA DE COMPARACIÓN:");
-            log.info("   → No se alcanzó el 90%% del óptimo en {} generaciones", numGenerations);
+            log.info("   → No se alcanzó el 90% del óptimo en {} generaciones", numGenerations);
         }
 
         if (avgDiversity > 0) {
-            log.info("🧬 DIVERSIDAD GENÉTICA PROMEDIO: {}", String.format("%.4f", avgDiversity));
+            log.info("🧬 DIVERSIDAD GENÉTICA PROMEDIO: {}", formattedAvgDiversity);
             log.info("   → Rango: 0.0 (mínima) a 0.5 (máxima)");
         }
     }
