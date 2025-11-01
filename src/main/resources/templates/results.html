@@ -17,9 +17,10 @@
             flex-wrap: wrap;
             align-items: center;
         }
-        .risk-low, .satisfaction-high { border-left: 5px solid #27ae60; background-color: #e6ffe6; }
-        .risk-high, .satisfaction-low { border-left: 5px solid #c0392b; background-color: #ffe6e6; }
-        .risk-mid, .satisfaction-medium { border-left: 5px solid #f39c12; background-color: #fff8e6; }
+        /* Estilos base (Mantener para coherencia visual) */
+        .risk-low, .satisfaction-high { border-left: 5px solid #27ae60; background-color: #e6ffe6; } /* Verde: Éxito / Bajo Riesgo / Óptimo */
+        .risk-high, .satisfaction-low { border-left: 5px solid #c0392b; background-color: #ffe6e6; } /* Rojo: Falla / Alto Riesgo / Ineficaz */
+        .risk-mid, .satisfaction-medium { border-left: 5px solid #f39c12; background-color: #fff8e6; } /* Amarillo: Medio / Aceptable */
         .label { font-weight: bold; margin-right: 5px; color: #34495e; }
         .value { margin-right: 15px; }
 
@@ -32,7 +33,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>Análisis de Resultados del Algoritmo Genético 📊</h1>
+    <h1><span th:text="${functionContext.get('title')}">Análisis de Resultados del Algoritmo Genético</span> 📊</h1>
 
     <th:block th:if="${error}">
         <p class="error-container error-title" th:text="${error}"></p>
@@ -49,17 +50,17 @@
         <th:block th:if="${isChromosomeBasedFunction}">
             <div class="generation-info">
                 <h2>🏆 Top 10 Mejores Individuos</h2>
-                <p>Decodificación de las variables clave y la conclusión para los individuos más aptos.</p>
+                <p th:text="${functionContext.get('description')}"></p>
             </div>
 
             <ul class="results-list">
                 <th:block th:each="interpretation, index : ${top10Interpretations}">
 
                     <li th:with="conclusion=${interpretation['Interpretación']},
-                                      riskClass=
-                                        (${#strings.contains(conclusion, 'MUY BAJO') or #strings.contains(conclusion, 'BAJO') or #strings.contains(conclusion, 'MUY ALTA') or #strings.contains(conclusion, 'ALTA')} ? 'risk-low' :
-                                        (${#strings.contains(conclusion, 'MEDIO') or #strings.contains(conclusion, 'MEDIA')} ? 'risk-mid' : 'risk-high'))"
-                        th:class="${riskClass}">
+                                      cssClass=
+                                        (${#strings.contains(conclusion, 'MUY BAJO') or #strings.contains(conclusion, 'BAJO') or #strings.contains(conclusion, 'MUY ALTA') or #strings.contains(conclusion, 'ALTA') or #strings.contains(conclusion, 'ÓPTIMA') or #strings.contains(conclusion, 'BUENA')} ? 'risk-low satisfaction-high' :
+                                        (${#strings.contains(conclusion, 'MEDIO') or #strings.contains(conclusion, 'MEDIA') or #strings.contains(conclusion, 'ACEPTABLE')} ? 'risk-mid satisfaction-medium' : 'risk-high satisfaction-low'))"
+                        th:class="${cssClass}">
 
                         <span class="label">#<span th:text="${index.index + 1}"></span>:</span>
 
@@ -70,12 +71,14 @@
                         </th:block>
 
                         <span style="margin-left: auto;">
-                                <span class="label">| Fitness:</span>
-                                <span class="value"
-                                      th:text="${interpretation['Satisfacción Total'] != null ? interpretation['Satisfacción Total'] : interpretation['Fitness Total']}"></span>
-                                <span class="label">| Evaluación:</span>
-                                <span class="value" th:text="${interpretation['Interpretación']}" style="font-weight: bold;"></span>
+                            <span class="label">| Fitness:</span>
+                            <span class="value"
+                                  th:with="displayFitness=${interpretation['Satisfacción Total'] ?: interpretation['Fitness Total']}"
+                                  th:text="${#numbers.formatDecimal(displayFitness, 1, 4)}">
                             </span>
+                            <span class="label">| Evaluación:</span>
+                            <span class="value" th:text="${interpretation['Interpretación']}" style="font-weight: bold;"></span>
+                        </span>
                     </li>
                 </th:block>
             </ul>

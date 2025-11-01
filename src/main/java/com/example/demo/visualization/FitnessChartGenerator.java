@@ -127,6 +127,8 @@ public class FitnessChartGenerator {
                 return 64.0;
             case "function2":
                 return 173.0;
+            case "farmacologia":
+                return 100.0;
             default:
                 return 1.0;
         }
@@ -140,6 +142,8 @@ public class FitnessChartGenerator {
                 return "Preferencias de Consumo";
             case "function5", "function2":
                 return "Función Cuadrática";
+            case "farmacologia":
+                return "Optimización Farmacológica";
             default:
                 return functionType;
         }

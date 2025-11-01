@@ -9,9 +9,9 @@ public class AlgorithmParameterPreprocessor {
     public void preprocess(GeneticAlgorithmRequest params) {
         if ("credit".equals(params.getFunctionType())) {
             params.setL(34);
-        } else if ("consumo".equals(params.getFunctionType())) {
-            params.setL(30);
+        } else if ("consumo".equals(params.getFunctionType()) ||
+                "farmacologia".equals(params.getFunctionType())) {
+            params.setL(30); // Ambas funciones usan 30 bits
         }
-        // Para funciones matemáticas, L se mantiene como está
     }
 }

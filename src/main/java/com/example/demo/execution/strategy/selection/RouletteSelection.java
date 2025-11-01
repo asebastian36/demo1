@@ -48,10 +48,16 @@ public class RouletteSelection implements SelectionStrategy {
                 .sum();
 
         if (totalFitness <= 0) {
-            // Si todos son negativos o cero, seleccionar al azar
-            Individual randomPick = population.get(random.nextInt(population.size()));
-            log.trace("⚠️ Fitness total <= 0. Selección aleatoria: {}", randomPick.getBinary());
-            return randomPick;
+            // CORRECCIÓN: Si el fitness total es <= 0, buscamos el mejor individuo (el más cercano a 0)
+            // y lo seleccionamos para darle una oportunidad al AG de escapar del 0.
+
+            // 1. Encontrar el individuo con el fitness más alto (menos negativo o más cercano a cero)
+            Individual bestFitInZeroPop = population.stream()
+                    .max(Comparator.comparingDouble(Individual::getAdaptative))
+                    .orElse(population.getFirst()); // Fallback al primero
+
+            log.warn("⚠️ Fitness total <= 0. Forzando selección del individuo con mejor fitness ({}).", bestFitInZeroPop.getAdaptative());
+            return bestFitInZeroPop;
         }
 
         double rand = random.nextDouble() * totalFitness;

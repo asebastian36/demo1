@@ -5,6 +5,7 @@ import com.example.demo.genetic.operators.SelectionStrategy;
 import com.example.demo.io.conversion.BinaryToDecimalConverter;
 import com.example.demo.io.conversion.DecimalToRealConverter;
 import com.example.demo.io.conversion.FitnessEvaluator;
+import com.example.demo.function.ChromosomeBasedFitnessFunction; // Importar la interfaz
 import org.springframework.stereotype.Component;
 import java.util.*;
 
@@ -67,9 +68,9 @@ public class TournamentSelection implements SelectionStrategy {
 
     /**
      * Genera un individuo aleatorio REAL con binario, valor real y adaptativo calculados correctamente.
+     * * **CORRECCIÓN:** Asegura que las funciones basadas en cromosoma usen evaluate(String binary).
      */
     private Individual generateRealRandomIndividual(int generation) {
-        // Validar que los parámetros estén configurados
         if (xmin == null || xmax == null || L == null || functionType == null) {
             throw new IllegalStateException(
                     "TournamentSelection no está configurado. Llama a configure() antes de usar.");
@@ -82,14 +83,26 @@ public class TournamentSelection implements SelectionStrategy {
         }
         String randomBinary = sb.toString();
 
-        // 2. Convertir binario a decimal
-        long decimal = binaryConverterService.convertBinaryToInt(randomBinary);
+        double real = 0.0;
+        double adaptative = 0.0;
 
-        // 3. Convertir decimal a valor real
-        double real = realConverterService.toRealSingle(decimal, xmin, xmax, L);
-
-        // 4. Calcular adaptativo usando la función correcta
-        double adaptative = adaptiveFunctionService.toAdaptiveSingle(real, functionType);
+        // --- INICIO DE LA CORRECCIÓN ---
+        if ("credit".equals(functionType) || "consumo".equals(functionType) || "farmacologia".equals(functionType)) {
+            // Si es una función basada en cromosoma, se usa evaluate(String binary) directamente
+            // para obtener el fitness adaptativo final.
+            if (adaptiveFunctionService.getFunction(functionType) instanceof ChromosomeBasedFitnessFunction function) {
+                adaptative = function.evaluate(randomBinary);
+                real = 0.0; // El valor real no es relevante para el individuo en este contexto
+            } else {
+                throw new IllegalStateException("Función de cromosoma mal tipada.");
+            }
+        } else {
+            // Flujo original para funciones matemáticas simples (f(x))
+            long decimal = binaryConverterService.convertBinaryToInt(randomBinary);
+            real = realConverterService.toRealSingle(decimal, xmin, xmax, L);
+            adaptative = adaptiveFunctionService.toAdaptiveSingle(real, functionType);
+        }
+        // --- FIN DE LA CORRECCIÓN ---
 
         return new Individual(randomBinary, real, adaptative, generation);
     }

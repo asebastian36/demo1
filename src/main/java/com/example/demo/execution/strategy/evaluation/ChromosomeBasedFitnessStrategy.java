@@ -30,7 +30,7 @@ public class ChromosomeBasedFitnessStrategy implements FitnessEvaluationStrategy
 
     @Override
     public boolean supports(String functionType) {
-        return "credit".equals(functionType) || "consumo".equals(functionType);
+        return "credit".equals(functionType) || "consumo".equals(functionType) || "farmacologia".equals(functionType);
     }
 
     @Override

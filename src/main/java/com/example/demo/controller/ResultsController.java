@@ -65,7 +65,7 @@ public class ResultsController {
             currentGeneration = Math.max(1, Math.min(currentGeneration, totalGenerations));
             int generationIndex = currentGeneration - 1;
 
-            boolean isChromosomeBased = "credit".equals(functionType) || "consumo".equals(functionType);
+            boolean isChromosomeBased = "credit".equals(functionType) || "consumo".equals(functionType) || "farmacologia".equals(functionType);
 
             if (isChromosomeBased) {
                 List<Individual> finalGeneration = generations.getLast();
@@ -91,6 +91,8 @@ public class ResultsController {
                 model.addAttribute("totalGenerations", totalGenerations);
             }
 
+            Map<String, String> functionContext = getFunctionContext(functionType);
+            model.addAttribute("functionContext", functionContext);
             String chartImage = chartGenerator.generateAdaptativeChart(fitnessByGeneration, functionType);
             model.addAttribute("chartImage", chartImage);
             model.addAttribute("xmin", xmin);
@@ -106,5 +108,26 @@ public class ResultsController {
             model.addAttribute("error", "Error al mostrar resultados: " + e.getMessage());
             return "error";
         }
+    }
+
+    private Map<String, String> getFunctionContext(String functionType) {
+        return switch (functionType) {
+            case "credit" -> Map.of(
+                    "title", "Análisis de Riesgo Crediticio",
+                    "description", "Evaluación de la probabilidad de incumplimiento de pago."
+            );
+            case "consumo" -> Map.of(
+                    "title", "Análisis de Preferencias de Consumo",
+                    "description", "Encontrando la combinación óptima de Precio, Calidad y Sustentabilidad."
+            );
+            case "farmacologia" -> Map.of(
+                    "title", "Optimización de Dosis Farmacológicas (A, B, C)",
+                    "description", "Maximizando la Eficacia y minimizando la Toxicidad y el Costo."
+            );
+            default -> Map.of(
+                    "title", "Optimización de Función Matemática f(x)",
+                    "description", "Búsqueda del valor óptimo para funciones en una dimensión."
+            );
+        };
     }
 }

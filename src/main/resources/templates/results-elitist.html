@@ -26,9 +26,15 @@
             <td th:text="${result.combination.selectionType}"></td>
             <td th:text="${result.combination.crossoverType}"></td>
             <td th:text="${result.combination.mutationType}"></td>
+
             <td th:text="${result.generationsToConverge == -1 ? 'No convergió' : result.generationsToConverge}"></td>
-            <td th:text="${#numbers.formatDecimal(result.bestFitness, 1, 6)}"></td>
+
+            <td th:with="displayFitness=${result.bestFitness != null ? result.bestFitness : 0.0}"
+                th:text="${#numbers.formatDecimal(displayFitness, 1, 6)}">
+            </td>
+
             <td th:text="${result.executionTimeMs}"></td>
+
             <td>
                 <span th:if="${result.errorMessage == null}" style="color: green;">✅ Éxito</span>
                 <span th:if="${result.errorMessage != null}"
