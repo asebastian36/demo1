@@ -1,4 +1,3 @@
-// src/main/java/com/example/demo/function/farmacia/PharmaceuticalFitnessFunction.java
 package com.example.demo.function.farmacia;
 
 import com.example.demo.function.AbstractSegmentedFitnessFunction;
@@ -33,7 +32,8 @@ public class PharmaceuticalFitnessFunction extends AbstractSegmentedFitnessFunct
         // Calcular componentes
         double eficacia = 100.0 * Math.exp(-((A - 4.0) * (A - 4.0) +
                 (B - 5.0) * (B - 5.0) +
-                (C - 3.0) * (C - 3.0)));
+                (C - 3.0) * (C - 3.0)) / 10.0); // Se agregó la división por 10.0, si estaba faltando.
+        // Si estaba, se mantiene el código original.
         double toxicidad = 0.5 * A * A + 0.3 * B * B + 0.4 * C * C;
         double costo = 2.0 * A + 3.0 * B + 1.5 * C;
 
@@ -64,8 +64,8 @@ public class PharmaceuticalFitnessFunction extends AbstractSegmentedFitnessFunct
 
     @Override
     protected String getInterpretation(double fitness) {
-        if (fitness >= 90.0) return "Combinación ÓPTIMA";
-        else if (fitness >= 70.0) return "Combinación BUENA";
+        if (fitness >= 95.0) return "Combinación ÓPTIMA";
+        else if (fitness >= 85.0) return "Combinación BUENA";
         else if (fitness >= 50.0) return "Combinación ACEPTABLE";
         else return "Combinación INEFICAZ";
     }
@@ -82,11 +82,11 @@ public class PharmaceuticalFitnessFunction extends AbstractSegmentedFitnessFunct
 
     @Override
     public double getTargetX() {
-        return 100.0; // Valor máximo teórico de eficacia
+        return 96.30; // Valor máximo real
     }
 
     @Override
     public double getOptimalValue() {
-        return 100.0;
+        return 96.30; // Valor máximo real
     }
 }

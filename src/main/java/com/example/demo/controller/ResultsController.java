@@ -19,12 +19,12 @@ import java.util.stream.Collectors;
 public class ResultsController {
 
     private final FitnessChartGenerator chartGenerator;
-    private final FitnessEvaluator fitnessEvaluator; // 👈 Necesario para getFunction()
+    private final FitnessEvaluator fitnessEvaluator;
     private final BinaryToDecimalConverter binaryConverter;
     private final ExecutionResultCache resultCache;
 
     public ResultsController(FitnessChartGenerator chartGenerator,
-                             FitnessEvaluator fitnessEvaluator, // 👈 Inyectado
+                             FitnessEvaluator fitnessEvaluator,
                              BinaryToDecimalConverter binaryConverter,
                              ExecutionResultCache resultCache) {
         this.chartGenerator = chartGenerator;
@@ -65,7 +65,9 @@ public class ResultsController {
             currentGeneration = Math.max(1, Math.min(currentGeneration, totalGenerations));
             int generationIndex = currentGeneration - 1;
 
-            boolean isChromosomeBased = "credit".equals(functionType) || "consumo".equals(functionType) || "farmacologia".equals(functionType);
+            boolean isChromosomeBased = "credit".equals(functionType)
+                    || "consumo".equals(functionType)
+                    || "farmacologia".equals(functionType);
 
             if (isChromosomeBased) {
                 List<Individual> finalGeneration = generations.getLast();
@@ -85,16 +87,27 @@ public class ResultsController {
                 model.addAttribute("top10Interpretations", top10Interpretations);
                 model.addAttribute("isChromosomeBasedFunction", true);
                 model.addAttribute("bestIndividual", finalGeneration.getFirst());
+
+                // Añadir el contexto de la función para el encabezado (asumiendo que este método existe)
+                model.addAttribute("functionContext", getFunctionContext(functionType));
             } else {
                 model.addAttribute("isChromosomeBasedFunction", false);
                 model.addAttribute("currentGenIndividuals", generations.get(generationIndex));
                 model.addAttribute("totalGenerations", totalGenerations);
+
+                // Añadir el contexto de la función para el encabezado (asumiendo que este método existe)
+                model.addAttribute("functionContext", getFunctionContext(functionType));
             }
 
-            Map<String, String> functionContext = getFunctionContext(functionType);
-            model.addAttribute("functionContext", functionContext);
+            // Generar la gráfica de convergencia existente (líneas)
             String chartImage = chartGenerator.generateAdaptativeChart(fitnessByGeneration, functionType);
+
+            // Generar el nuevo gráfico de distribución (Box Plot)
+            String distributionChartImage = chartGenerator.generateDistributionChart(generations, functionType);
+
+
             model.addAttribute("chartImage", chartImage);
+            model.addAttribute("distributionChartImage", distributionChartImage); // <-- NUEVO ATRIBUTO
             model.addAttribute("xmin", xmin);
             model.addAttribute("xmax", xmax);
             model.addAttribute("L", L);
@@ -110,6 +123,7 @@ public class ResultsController {
         }
     }
 
+    // Asumiendo que este método está implementado en tu controlador:
     private Map<String, String> getFunctionContext(String functionType) {
         return switch (functionType) {
             case "credit" -> Map.of(

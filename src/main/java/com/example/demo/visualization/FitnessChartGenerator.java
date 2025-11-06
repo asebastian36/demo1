@@ -1,13 +1,17 @@
 package com.example.demo.visualization;
 
+import com.example.demo.execution.model.Individual;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.category.BoxAndWhiskerRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.statistics.DefaultBoxAndWhiskerCategoryDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.springframework.stereotype.Service;
@@ -15,7 +19,9 @@ import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class FitnessChartGenerator {
@@ -114,6 +120,75 @@ public class FitnessChartGenerator {
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ChartUtils.writeChartAsPNG(outputStream, chart, 800, 600);
+        byte[] chartBytes = outputStream.toByteArray();
+
+        return "data:image/png;base64," + Base64.getEncoder().encodeToString(chartBytes);
+    }
+
+    public String generateDistributionChart(List<List<Individual>> generations, String functionType) throws IOException {
+
+        final int totalGenerations = generations.size();
+        final int minGenerations = 3;
+
+        if (totalGenerations < 2) {
+            // Se necesita al menos Inicial y Final.
+            return "error:insufficient_data";
+        }
+
+        // 1. Seleccionar las poblaciones
+        final List<Double> gInitial = generations.get(0).stream().map(Individual::getAdaptative).collect(Collectors.toList());
+        final List<Double> gFinal = generations.getLast().stream().map(Individual::getAdaptative).collect(Collectors.toList());
+
+        // Determinar la Generación Intermedia (Gi)
+        final List<Double> gIntermediate;
+        String intermediateLabel = "N/A";
+
+        if (totalGenerations >= minGenerations) {
+            int midIndex = (totalGenerations - 1) / 2;
+            gIntermediate = generations.get(midIndex).stream().map(Individual::getAdaptative).collect(Collectors.toList());
+            intermediateLabel = "Gen " + (midIndex + 1);
+        } else {
+            gIntermediate = Collections.emptyList();
+        }
+
+
+        // 2. Crear el Dataset
+        final DefaultBoxAndWhiskerCategoryDataset dataset = new DefaultBoxAndWhiskerCategoryDataset();
+
+        // Añadir las poblaciones (JFreeChart necesita listas de Doubles)
+        dataset.add(gInitial, "Fitness", "Gen 1 (Inicial)");
+        if (!gIntermediate.isEmpty()) {
+            dataset.add(gIntermediate, "Fitness", intermediateLabel);
+        }
+        dataset.add(gFinal, "Fitness", "Gen " + totalGenerations + " (Final)");
+
+
+        // 3. Crear el Gráfico (Box Plot)
+        final JFreeChart chart = ChartFactory.createBoxAndWhiskerChart(
+                "Distribución del Fitness: Inicial, Media y Final",
+                "Generación/Población",
+                "Valor Adaptativo",
+                dataset,
+                true
+        );
+
+        // 4. Estilizar y Renderizar
+        final CategoryPlot plot = (CategoryPlot) chart.getPlot();
+
+        // Estilos para el Box Plot
+        BoxAndWhiskerRenderer renderer = new BoxAndWhiskerRenderer();
+        renderer.setFillBox(true);
+        renderer.setMeanVisible(true); // Mostrar la media (punto)
+
+        plot.setRenderer(renderer);
+        plot.setBackgroundPaint(Color.WHITE);
+        plot.setDomainGridlinePaint(Color.LIGHT_GRAY);
+        plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
+
+
+        // 5. Convertir a Base64
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ChartUtils.writeChartAsPNG(outputStream, chart, 800, 400);
         byte[] chartBytes = outputStream.toByteArray();
 
         return "data:image/png;base64," + Base64.getEncoder().encodeToString(chartBytes);

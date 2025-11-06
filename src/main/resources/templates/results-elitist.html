@@ -9,6 +9,10 @@
 <div class="container">
     <h1>🔬 Resultados del Modo Elitista</h1>
 
+    <button type="button" class="submit-btn" onclick="exportAllCharts()">
+        ⬇️ Exportar Gráficos (.png)
+    </button>
+
     <table class="table-container">
         <thead>
         <tr>
@@ -48,9 +52,20 @@
     <h2>Gráficas de convergencia</h2>
     <div th:each="result : ${results}" style="margin-bottom: 30px; border: 1px solid #ddd; padding: 10px;">
         <h3 th:text="${result.combination}"></h3>
+
         <img th:if="${result.chartImage != 'error'}"
              th:src="${result.chartImage}"
              style="max-width: 100%; height: auto;"/>
+
+        <h4 style="margin-top: 15px;">Distribución de Población (Inicial, Media, Final)</h4>
+        <img th:if="${result.distributionChartImage != 'error' and result.distributionChartImage != 'error:insufficient_data'}"
+             th:src="${result.distributionChartImage}"
+             style="max-width: 100%; height: auto; border: 1px solid #ccc;"/>
+        <div th:if="${result.distributionChartImage == 'error:insufficient_data'}"
+             style="color: gray; background: #f0f0f0; padding: 10px; border-radius: 4px; margin-top: 10px;">
+            No hay suficientes generaciones para el análisis de distribución.
+        </div>
+
         <div th:if="${result.errorMessage != null}"
              style="color: red; background: #ffe6e6; padding: 10px; border-radius: 4px; margin-top: 10px;">
             <strong>Error:</strong> <span th:text="${result.errorMessage}"></span>
@@ -59,5 +74,7 @@
 
     <a href="/" class="back-button">← Ejecutar nuevo algoritmo</a>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script th:src="@{/js/app.js}" defer></script>
 </body>
 </html>

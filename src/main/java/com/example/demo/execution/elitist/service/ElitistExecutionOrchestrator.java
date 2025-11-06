@@ -1,23 +1,19 @@
 package com.example.demo.execution.elitist.service;
 
-import com.example.demo.execution.elitist.model.CombinationResult;
-import com.example.demo.execution.elitist.model.ExecutionCombination;
+import com.example.demo.execution.elitist.model.*;
 import com.example.demo.execution.model.Individual;
 import com.example.demo.execution.service.GeneticAlgorithmCore;
 import com.example.demo.execution.strategy.crossover.CrossoverStrategy;
 import com.example.demo.execution.strategy.mutation.MutationStrategy;
-import com.example.demo.function.FitnessFunction;
 import com.example.demo.genetic.operators.SelectionStrategy;
+import com.example.demo.function.FitnessFunction;
 import com.example.demo.io.conversion.FitnessEvaluator;
 import com.example.demo.metrics.AlgorithmMetricsService;
 import com.example.demo.visualization.FitnessChartGenerator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.*;
 import org.springframework.stereotype.Service;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -138,7 +134,6 @@ public class ElitistExecutionOrchestrator {
                     convergenceThreshold
             );
 
-            // 👇 LOGS DE DIAGNÓSTICO PASO 1
             log.info("Combinación {} - Generaciones: {}", combinationId, generations.size());
             if (!generations.isEmpty()) {
                 log.info("Combinación {} - Generación 1 - Individuos: {}", combinationId, generations.getFirst().size());
@@ -152,7 +147,6 @@ public class ElitistExecutionOrchestrator {
             int generationsToConverge = metricsService.findGeneration90Percent(generations, optimalValue);
             double bestFitness = generations.isEmpty() ? 0.0 : generations.getLast().getFirst().getAdaptative();
 
-            // 👇 CONSTRUCCIÓN DE fitnessByGeneration CON LOGS
             List<List<Double>> fitnessByGeneration = generations.stream()
                     .map(gen -> gen.stream().map(Individual::getAdaptative).collect(Collectors.toList()))
                     .collect(Collectors.toList());
@@ -162,18 +156,25 @@ public class ElitistExecutionOrchestrator {
                 log.info("Combinación {} - fitnessByGeneration[0][0]: {}", combinationId, fitnessByGeneration.getFirst().getFirst());
             }
 
+            // Generar la gráfica de convergencia (líneas)
             String chartImage = chartGenerator.generateAdaptativeChart(fitnessByGeneration, functionType);
+
+            // Generar el nuevo gráfico de distribución (Box Plot)
+            String distributionChartImage = chartGenerator.generateDistributionChart(generations, functionType);
 
             long time = System.currentTimeMillis() - start;
             statusService.incrementCompleted(sessionId);
-            return new CombinationResult(combo, chartImage, generationsToConverge, bestFitness, time, null);
+
+            // Se asume que CombinationResult fue actualizado para recibir distributionChartImage
+            return new CombinationResult(combo, chartImage, distributionChartImage, generationsToConverge, bestFitness, time, null);
 
         } catch (Exception e) {
             long time = System.currentTimeMillis() - start;
             String errorMsg = e.getMessage() != null ? e.getMessage() : "Error desconocido";
             statusService.addError(sessionId, combinationId, errorMsg);
             statusService.incrementCompleted(sessionId);
-            return new CombinationResult(combo, "error", -1, Double.NEGATIVE_INFINITY, time, errorMsg);
+            // Devolver 'error' para ambas imágenes en caso de fallo
+            return new CombinationResult(combo, "error", "error", -1, Double.NEGATIVE_INFINITY, time, errorMsg);
         }
     }
 }

@@ -5,7 +5,6 @@ import com.example.demo.genetic.operators.SelectionStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
 import java.util.*;
 
 @Component("roulette")
@@ -40,26 +39,29 @@ public class RouletteSelection implements SelectionStrategy {
     }
 
     /**
-     * Selecciona un individuo usando ruleta de probabilidad proporcional al adaptativo.
+     * Selecciona un individuo usando ruleta de probabilidad proporcional al adaptativo,
+     * aplicando escalamiento si el fitness total es cero.
      */
     private Individual select(List<Individual> population) {
+
+        // 1. Calcular el fitness total
         double totalFitness = population.stream()
                 .mapToDouble(Individual::getAdaptative)
                 .sum();
 
+        // 2. Manejar caso de estancamiento (totalFitness <= 0)
         if (totalFitness <= 0) {
-            // CORRECCIÓN: Si el fitness total es <= 0, buscamos el mejor individuo (el más cercano a 0)
-            // y lo seleccionamos para darle una oportunidad al AG de escapar del 0.
+            log.warn("⚠️ Fitness total <= 0. Aplicando Escalamiento (Offset Mínimo) para forzar la selección.");
 
-            // 1. Encontrar el individuo con el fitness más alto (menos negativo o más cercano a cero)
-            Individual bestFitInZeroPop = population.stream()
-                    .max(Comparator.comparingDouble(Individual::getAdaptative))
-                    .orElse(population.getFirst()); // Fallback al primero
+            // Si el fitness total es 0, todos los fitness son 0 (dado Math.max(F, 0.0)).
+            // El mejor individuo (anteriormente seleccionado) sigue siendo el mejor,
+            // pero para evitar el spam, aplicaremos una selección puramente aleatoria si estamos atascados en 0.0.
 
-            log.warn("⚠️ Fitness total <= 0. Forzando selección del individuo con mejor fitness ({}).", bestFitInZeroPop.getAdaptative());
-            return bestFitInZeroPop;
+            // Opción más simple y efectiva para romper el bucle: Selección aleatoria simple.
+            return population.get(random.nextInt(population.size()));
         }
 
+        // 3. Selección normal basada en la ruleta
         double rand = random.nextDouble() * totalFitness;
         double cumulative = 0.0;
 
@@ -71,7 +73,7 @@ public class RouletteSelection implements SelectionStrategy {
             }
         }
 
-        // Por seguridad, devuelve el último
+        // Por seguridad, devuelve el último o el más apto (usaremos el último por simplicidad)
         Individual last = population.getLast();
         log.warn("⚠️ Selección por defecto (último): {}", last.getBinary());
         return last;

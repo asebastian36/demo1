@@ -102,6 +102,19 @@
                      style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;">
             </div>
 
+            <h2 style="margin-top: 40px;">📉 Comparación de Distribución de Fitness</h2>
+            <p>Análisis visual de la evolución de la población (Distribución Inicial, Media y Final).</p>
+
+            <th:block th:if="${distributionChartImage != 'error:insufficient_data'}">
+                <div class="chart-container">
+                    <img th:src="${distributionChartImage}" alt="Gráfica de distribución de fitness (Box Plot)"
+                         style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+            </th:block>
+            <th:block th:if="${distributionChartImage == 'error:insufficient_data'}">
+                <p class="error-container">No hay suficientes generaciones para mostrar el análisis de distribución (Mínimo 3 generaciones).</p>
+            </th:block>
+
             <h2 style="margin-top: 40px;">🧪 Inspección Generación por Generación</h2>
             <p>Navega a través de las generaciones para ver la evolución de los individuos.</p>
 
@@ -153,7 +166,12 @@
         </th:block>
     </th:block>
 
+    <button type="button" class="submit-btn" onclick="exportAllCharts()">
+        ⬇️ Exportar Gráficos (.png)
+    </button>
+
     <p style="text-align: center; margin-top: 30px;"><a href="/" class="back-button">← Ejecutar nuevo algoritmo</a></p>
 </div>
+<script th:src="@{/js/app.js}" defer></script>
 </body>
 </html>
