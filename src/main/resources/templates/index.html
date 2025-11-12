@@ -71,6 +71,8 @@
                     <option value="credit">Riesgo crediticio</option>
                     <option value="consumo">Preferencias de consumo</option>
                     <option value="farmacologia">Optimización farmacológica</option>
+                    <option value="transporte">Optimización rutas de transporte</option>
+                    <option value="netflix">Recomendaciones de peliculas en Netflix</option>
                 </select>
             </div>
         </div>
@@ -171,7 +173,7 @@
 
             // boolean helper
             get isMathFunction() {
-                return !['credit', 'consumo', 'farmacologia'].includes(this.functionType);
+                return !['credit', 'consumo', 'farmacologia', 'transporte', 'netflix'].includes(this.functionType);
             },
 
             // handler opcional para submit (aquí validamos HTML5 manualmente si quieres)

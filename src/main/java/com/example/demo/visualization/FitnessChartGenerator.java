@@ -204,6 +204,10 @@ public class FitnessChartGenerator {
                 return 173.0;
             case "farmacologia":
                 return 100.0;
+            case "transporte":
+                return 3.0;
+            case "netflix":
+                return 18;
             default:
                 return 1.0;
         }

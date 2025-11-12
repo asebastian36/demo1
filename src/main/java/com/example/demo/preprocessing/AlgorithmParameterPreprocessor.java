@@ -12,6 +12,10 @@ public class AlgorithmParameterPreprocessor {
         } else if ("consumo".equals(params.getFunctionType()) ||
                 "farmacologia".equals(params.getFunctionType())) {
             params.setL(30); // Ambas funciones usan 30 bits
+        } else if ("transporte".equals(params.getFunctionType())) { // <-- Nuevo caso
+            params.setL(5);
+        } else if ("netflix".equals(params.getFunctionType())) { // <-- Nuevo caso
+            params.setL(6);
         }
     }
 }

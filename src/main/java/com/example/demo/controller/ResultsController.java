@@ -67,7 +67,7 @@ public class ResultsController {
 
             boolean isChromosomeBased = "credit".equals(functionType)
                     || "consumo".equals(functionType)
-                    || "farmacologia".equals(functionType);
+                    || "farmacologia".equals(functionType) || "transporte".equals(functionType) || "netflix".equals(functionType);
 
             if (isChromosomeBased) {
                 List<Individual> finalGeneration = generations.getLast();
@@ -137,6 +137,10 @@ public class ResultsController {
             case "farmacologia" -> Map.of(
                     "title", "Optimización de Dosis Farmacológicas (A, B, C)",
                     "description", "Maximizando la Eficacia y minimizando la Toxicidad y el Costo."
+            );
+            case "transporte" -> Map.of(
+                    "title", "Optimizacion de rutas de transporte",
+                    "description", "Encontrando la ruta optima"
             );
             default -> Map.of(
                     "title", "Optimización de Función Matemática f(x)",
